@@ -340,7 +340,7 @@
               <MiscControls>--C99</MiscControls>
               <Define>USE_HAL_DRIVER, STM32H750xx</Define>
               <Undefine></Undefine>
-              <IncludePath>..\CORE;..\USER;..\USMART;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\HALLIB\STM32H7xx_HAL_Driver\Inc;..\MALLOC;..\HARDWARE\LED;..\HARDWARE\KEY;..\HARDWARE\MPU;..\HARDWARE\LCD;..\HARDWARE\SDRAM;..\HARDWARE\RTC;..\HARDWARE\24CXX;..\HARDWARE\IIC;..\HARDWARE\PCF8574;..\HARDWARE\SPI;..\HARDWARE\W25QXX;..\HARDWARE\DHT11;..\HARDWARE\NRF24L01;..\HARDWARE\OV5640;..\HARDWARE\DCMI;..\HARDWARE\USART2;..\HARDWARE\TIMER;..\HARDWARE\SDMMC;..\HARDWARE\NAND;..\HARDWARE\JPEGCODEC;..\HARDWARE\SAI;..\HARDWARE\ES8388;..\FATFS\exfuns;..\FATFS\source;..\TEXT;..\PICTURE;..\AUDIOCODEC\wav;..\APP;..\MJPEG;..\FreeRTOS\include;..\FreeRTOS\portable\RVDS\ARM_CM7\r0p1;..\LITTLEFS</IncludePath>
+              <IncludePath>..\CORE;..\USER;..\USMART;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\HALLIB\STM32H7xx_HAL_Driver\Inc;..\MALLOC;..\HARDWARE\LED;..\HARDWARE\KEY;..\HARDWARE\MPU;..\HARDWARE\LCD;..\HARDWARE\SDRAM;..\HARDWARE\RTC;..\HARDWARE\24CXX;..\HARDWARE\IIC;..\HARDWARE\PCF8574;..\HARDWARE\SPI;..\HARDWARE\W25QXX;..\HARDWARE\DHT11;..\HARDWARE\NRF24L01;..\HARDWARE\OV5640;..\HARDWARE\DCMI;..\HARDWARE\USART2;..\HARDWARE\TIMER;..\HARDWARE\SDMMC;..\HARDWARE\NAND;..\HARDWARE\JPEGCODEC;..\HARDWARE\SAI;..\HARDWARE\ES8388;..\FATFS\exfuns;..\FATFS\source;..\TEXT;..\PICTURE;..\AUDIOCODEC\wav;..\APP;..\MJPEG;..\FreeRTOS\include;..\FreeRTOS\portable\RVDS\ARM_CM7\r0p1;..\LITTLEFS;..\SPIFFS</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -783,6 +783,41 @@
               <FileName>port.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\FreeRTOS\portable\RVDS\ARM_CM7\r0p1\port.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>SPIFFS</GroupName>
+          <Files>
+            <File>
+              <FileName>spiffs_brigde.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\SPIFFS\spiffs_brigde.c</FilePath>
+            </File>
+            <File>
+              <FileName>spiffs_cache.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\SPIFFS\spiffs_cache.c</FilePath>
+            </File>
+            <File>
+              <FileName>spiffs_check.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\SPIFFS\spiffs_check.c</FilePath>
+            </File>
+            <File>
+              <FileName>spiffs_gc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\SPIFFS\spiffs_gc.c</FilePath>
+            </File>
+            <File>
+              <FileName>spiffs_hydrogen.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\SPIFFS\spiffs_hydrogen.c</FilePath>
+            </File>
+            <File>
+              <FileName>spiffs_nucleus.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\SPIFFS\spiffs_nucleus.c</FilePath>
             </File>
           </Files>
         </Group>

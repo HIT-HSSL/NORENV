@@ -1,3 +1,22 @@
+/**
+ * Copyright (C) 2022 Deadpool, Hao Huang
+ * 
+ * This file is part of NORENV.
+ * 
+ * NORENV is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * NORENV is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with NORENV.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include "lfs_brigde.h"
 #include "delay.h"
 #include "lfs.h"
@@ -5,20 +24,10 @@
 #include "w25qxx.h"
 
 lfs_t lfs;
-/*
- * @brief littlefs read interface
- * @param [in] c lfs_config数据结构
- * @param [in] block 要读的块
- * @param [in] off 在当前块的偏移
- * @param [out] buffer 读取到的数据
- * @param [in] size 要读取的字节数
- * @return 0 成功 <0 错误
- * @note littlefs 一定不会存在跨越块存储的情况
- */
-int W25Qxx_readLittlefs(const struct lfs_config *c, lfs_block_t block,
+
+int W25Qxx_readlfs(const struct lfs_config *c, lfs_block_t block,
                         lfs_off_t off, void *buffer, lfs_size_t size)
 {
-
     if (block >= W25Q256_NUM_GRAN) // error
     {
         return LFS_ERR_IO;
@@ -29,20 +38,9 @@ int W25Qxx_readLittlefs(const struct lfs_config *c, lfs_block_t block,
     return LFS_ERR_OK;
 }
 
-/*
- * @brief littlefs write interface
- * @param [in] c lfs_config数据结构
- * @param [in] block 要读的块
- * @param [in] off 在当前块的偏移
- * @param [out] buffer 读取到的数据
- * @param [in] size 要读取的字节数
- * @return 0 成功 <0 错误
- * @note littlefs 一定不会存在跨越块存储的情况
- */
-int W25Qxx_writeLittlefs(const struct lfs_config *c, lfs_block_t block,
+int W25Qxx_writelfs(const struct lfs_config *c, lfs_block_t block,
                          lfs_off_t off, void *buffer, lfs_size_t size)
 {
-
     if (block >= W25Q256_NUM_GRAN) // error
     {
         return LFS_ERR_IO;
@@ -53,36 +51,28 @@ int W25Qxx_writeLittlefs(const struct lfs_config *c, lfs_block_t block,
     return LFS_ERR_OK;
 }
 
-/*
- * @brief littlefs 擦除一个块
- * @param [in] c lfs_config数据结构
- * @param [in] block 要擦出的块
- * @return 0 成功 <0 错误
- */
-int W25Qxx_eraseLittlefs(const struct lfs_config *c, lfs_block_t block)
+int W25Qxx_eraselfs(const struct lfs_config *c, lfs_block_t block)
 {
-
     if (block >= W25Q256_NUM_GRAN) // error
     {
         return LFS_ERR_IO;
     }
 
-    //擦除扇区
     W25QXX_Erase_Sector(block);
     return LFS_ERR_OK;
 }
 
-int W25Qxx_syncLittlefs(const struct lfs_config *c)
+int W25Qxx_synclfs(const struct lfs_config *c)
 {
     return LFS_ERR_OK;
 }
 
 const struct lfs_config lfs_cfg = {
     // block device operations
-    .read = W25Qxx_readLittlefs,
-    .prog = W25Qxx_writeLittlefs,
-    .erase = W25Qxx_eraseLittlefs,
-    .sync = W25Qxx_syncLittlefs,
+    .read = W25Qxx_readlfs,
+    .prog = W25Qxx_writelfs,
+    .erase = W25Qxx_eraselfs,
+    .sync = W25Qxx_synclfs,
 
     // block device configuration
     .read_size = 256,

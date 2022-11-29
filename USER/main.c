@@ -12,6 +12,7 @@
 #include "usmart.h"
 #include "w25qxx.h"
 #include "lfs_brigde.h"
+#include "spiffs_brigde.h"
 #include "nfvfs.h"
 
 void board_init(void)
@@ -38,6 +39,7 @@ void board_init(void)
 void fs_registration(void) 
 {
     register_nfvfs("littlefs", &lfs_ops, NULL);
+    register_nfvfs("spiffs", &spiffs_ops, NULL);
 }
 
 extern u8 usmart_sys_cmd_exe(u8 *str);
