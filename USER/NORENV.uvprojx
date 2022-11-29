@@ -404,6 +404,16 @@
               <FileType>1</FileType>
               <FilePath>.\stm32h7xx_hal_msp.c</FilePath>
             </File>
+            <File>
+              <FileName>nfvfs.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\nfvfs.c</FilePath>
+            </File>
+            <File>
+              <FileName>benchmark.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\benchmark.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -718,6 +728,11 @@
               <FileName>lfs_util.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\LITTLEFS\lfs_util.c</FilePath>
+            </File>
+            <File>
+              <FileName>lfs_brigde.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\LITTLEFS\lfs_brigde.c</FilePath>
             </File>
           </Files>
         </Group>
