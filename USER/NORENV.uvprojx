@@ -340,7 +340,7 @@
               <MiscControls>--C99</MiscControls>
               <Define>USE_HAL_DRIVER, STM32H750xx</Define>
               <Undefine></Undefine>
-              <IncludePath>..\CORE;..\USER;..\USMART;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\HALLIB\STM32H7xx_HAL_Driver\Inc;..\MALLOC;..\HARDWARE\LED;..\HARDWARE\KEY;..\HARDWARE\MPU;..\HARDWARE\LCD;..\HARDWARE\SDRAM;..\HARDWARE\RTC;..\HARDWARE\24CXX;..\HARDWARE\IIC;..\HARDWARE\PCF8574;..\HARDWARE\SPI;..\HARDWARE\W25QXX;..\HARDWARE\DHT11;..\HARDWARE\NRF24L01;..\HARDWARE\OV5640;..\HARDWARE\DCMI;..\HARDWARE\USART2;..\HARDWARE\TIMER;..\HARDWARE\SDMMC;..\HARDWARE\NAND;..\HARDWARE\JPEGCODEC;..\HARDWARE\SAI;..\HARDWARE\ES8388;..\FATFS\exfuns;..\FATFS\source;..\TEXT;..\PICTURE;..\AUDIOCODEC\wav;..\APP;..\MJPEG;..\FreeRTOS\include;..\FreeRTOS\portable\RVDS\ARM_CM7\r0p1;..\LITTLEFS;..\SPIFFS</IncludePath>
+              <IncludePath>..\CORE;..\USER;..\USMART;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\HALLIB\STM32H7xx_HAL_Driver\Inc;..\MALLOC;..\HARDWARE\LED;..\HARDWARE\KEY;..\HARDWARE\MPU;..\HARDWARE\LCD;..\HARDWARE\SDRAM;..\HARDWARE\RTC;..\HARDWARE\24CXX;..\HARDWARE\IIC;..\HARDWARE\PCF8574;..\HARDWARE\SPI;..\HARDWARE\W25QXX;..\HARDWARE\DHT11;..\HARDWARE\NRF24L01;..\HARDWARE\OV5640;..\HARDWARE\DCMI;..\HARDWARE\USART2;..\HARDWARE\TIMER;..\HARDWARE\SDMMC;..\HARDWARE\NAND;..\HARDWARE\JPEGCODEC;..\HARDWARE\SAI;..\HARDWARE\ES8388;..\FATFS\exfuns;..\FATFS\source;..\TEXT;..\PICTURE;..\AUDIOCODEC\wav;..\APP;..\MJPEG;..\FreeRTOS\include;..\FreeRTOS\portable\RVDS\ARM_CM7\r0p1;..\LITTLEFS;..\SPIFFS;..\JESFS</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -818,6 +818,31 @@
               <FileName>spiffs_nucleus.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\SPIFFS\spiffs_nucleus.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>JESFS</GroupName>
+          <Files>
+            <File>
+              <FileName>jesfs_brigde.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\JESFS\jesfs_brigde.c</FilePath>
+            </File>
+            <File>
+              <FileName>jesfs_hl.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\JESFS\jesfs_hl.c</FilePath>
+            </File>
+            <File>
+              <FileName>JesFs_II_stm32h750xbh6.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\JESFS\JesFs_II_stm32h750xbh6.c</FilePath>
+            </File>
+            <File>
+              <FileName>jesfs_ml.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\JESFS\jesfs_ml.c</FilePath>
             </File>
           </Files>
         </Group>

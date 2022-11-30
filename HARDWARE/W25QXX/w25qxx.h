@@ -78,17 +78,4 @@ void W25QXX_Wait_Busy(void);           	//等待空闲
 void W25QXX_PowerDown(void);        	//进入掉电模式
 void W25QXX_WAKEUP(void);				//唤醒
 
-//-------------------------------ADD
-// int W25Qxx_readLittlefs(const struct lfs_config *c, lfs_block_t block,
-// 				lfs_off_t off, void *buffer, lfs_size_t size);
-
-
-// int W25Qxx_writeLittlefs(const struct lfs_config *c, lfs_block_t block,
-// 				lfs_off_t off,void *buffer, lfs_size_t size);
-
-// int W25Qxx_eraseLittlefs(const struct lfs_config *c, lfs_block_t block);
-
-
-// int W25Qxx_syncLittlefs(const struct lfs_config *c );
-
 #endif

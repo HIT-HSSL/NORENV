@@ -232,7 +232,7 @@ s32_t spiffs_erase_block(
 
   // here we ignore res, just try erasing the block
   while (size > 0) {
-    SPIFFS_DBG("erase "_SPIPRIad":"_SPIPRIi"\n", addr,  SPIFFS_CFG_PHYS_ERASE_SZ(fs));
+    SPIFFS_DBG("erase "_SPIPRIad":"_SPIPRIi"\r\n", addr,  SPIFFS_CFG_PHYS_ERASE_SZ(fs));
     SPIFFS_HAL_ERASE(fs, addr, SPIFFS_CFG_PHYS_ERASE_SZ(fs));
 
     addr += SPIFFS_CFG_PHYS_ERASE_SZ(fs);

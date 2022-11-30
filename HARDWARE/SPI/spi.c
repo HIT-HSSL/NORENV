@@ -86,3 +86,18 @@ u8 SPI2_ReadWriteByte(u8 TxData)
     HAL_SPI_TransmitReceive(&SPI2_Handler,&TxData,&Rxdata,1, 1000);       
  	return Rxdata;          		    //返回收到的数据		
 }
+
+
+u8 SPI2_ReadBytes(const uint8_t *buf, uint16_t len)
+{
+    u8 Rxdata;
+    HAL_SPI_Receive(&SPI2_Handler, (uint8_t *)buf, len, 1000);
+    return Rxdata;
+}
+
+u8 SPI2_WriteBytes(const uint8_t *buf, uint16_t len)
+{
+    u8 Rxdata;
+    HAL_SPI_Transmit(&SPI2_Handler, (uint8_t *)buf, len, 1000);
+    return Rxdata;
+}

@@ -46,7 +46,7 @@ int W25Qxx_writelfs(const struct lfs_config *c, lfs_block_t block,
         return LFS_ERR_IO;
     }
 
-    W25QXX_Write_NoCheck(buffer, block * W25Q256_ERASE_GRAN + off, size);
+    W25QXX_Write(buffer, block * W25Q256_ERASE_GRAN + off, size);
 
     return LFS_ERR_OK;
 }

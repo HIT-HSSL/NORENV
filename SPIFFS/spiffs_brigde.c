@@ -51,7 +51,7 @@ int spiffs_mount_wrp()
 {
     int err, tries = 0;
     spiffs_config cfg;
-    cfg.phys_size = 2 * 1024 * 1024;              // use all spi flash
+    cfg.phys_size = W25Q256_SIZE;              // use all spi flash
     cfg.phys_addr = 0;                         // start spiffs at start of spi flash
     cfg.phys_erase_block = W25Q256_ERASE_GRAN; // according to datasheet
     cfg.log_block_size = 65536;                // let us not complicate things
@@ -60,7 +60,8 @@ int spiffs_mount_wrp()
     cfg.hal_read_f = W25Qxx_readspiffs;
     cfg.hal_write_f = W25Qxx_writespiffs;
     cfg.hal_erase_f = W25Qxx_erasespiffs;
-
+    
+    /* Do not config USE_MAGIC */
     err = SPIFFS_mount(&fs,
                        &cfg,
                        spiffs_work_buf,

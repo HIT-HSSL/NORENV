@@ -2,21 +2,23 @@
 #define __SPI_H
 #include "sys.h"
 //////////////////////////////////////////////////////////////////////////////////	 
-//±¾³ÌĞòÖ»¹©Ñ§Ï°Ê¹ÓÃ£¬Î´¾­×÷ÕßĞí¿É£¬²»µÃÓÃÓÚÆäËüÈÎºÎÓÃÍ¾
-//ALIENTEK STM32H7¿ª·¢°å
-//SPIÇı¶¯´úÂë	   
-//ÕıµãÔ­×Ó@ALIENTEK
-//¼¼ÊõÂÛÌ³:www.openedv.com
-//´´½¨ÈÕÆÚ:2017/8/15
-//°æ±¾£ºV1.0
-//°æÈ¨ËùÓĞ£¬µÁ°æ±Ø¾¿¡£
-//Copyright(C) ¹ãÖİÊĞĞÇÒíµç×Ó¿Æ¼¼ÓĞÏŞ¹«Ë¾ 2014-2024
+//æœ¬ç¨‹åºåªä¾›å­¦ä¹ ä½¿ç”¨ï¼Œæœªç»ä½œè€…è®¸å¯ï¼Œä¸å¾—ç”¨äºå…¶å®ƒä»»ä½•ç”¨é€”
+//ALIENTEK STM32H7å¼€å‘æ¿
+//SPIé©±åŠ¨ä»£ç 	   
+//æ­£ç‚¹åŸå­@ALIENTEK
+//æŠ€æœ¯è®ºå›:www.openedv.com
+//åˆ›å»ºæ—¥æœŸ:2017/8/15
+//ç‰ˆæœ¬ï¼šV1.0
+//ç‰ˆæƒæ‰€æœ‰ï¼Œç›—ç‰ˆå¿…ç©¶ã€‚
+//Copyright(C) å¹¿å·å¸‚æ˜Ÿç¿¼ç”µå­ç§‘æŠ€æœ‰é™å…¬å¸ 2014-2024
 //All rights reserved									  
 ////////////////////////////////////////////////////////////////////////////////// 	
 
-extern SPI_HandleTypeDef SPI2_Handler;  //SPI¾ä±ú
+extern SPI_HandleTypeDef SPI2_Handler;  //SPIå¥æŸ„
 
 void SPI2_Init(void);
 void SPI2_SetSpeed(u32 SPI_BaudRatePrescaler);
 u8 SPI2_ReadWriteByte(u8 TxData);
+u8 SPI2_ReadBytes(const uint8_t *buf, uint16_t len);
+u8 SPI2_WriteBytes(const uint8_t *buf, uint16_t len);
 #endif
