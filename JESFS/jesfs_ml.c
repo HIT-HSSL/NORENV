@@ -18,6 +18,7 @@
 #include "jesfs.h"
 #include "jesfs_int.h"
 #include "w25qxx.h"
+#include "delay.h"
 
 SFLASH_INFO sflash_info; // Describes the Flash
 
@@ -269,11 +270,7 @@ void sflash_spi_close(void)
 
 void sflash_wait_usec(uint32_t usec)
 {
-    for (uint32_t i = 0; i < usec; i++) {
-        for (uint32_t j = 0; j < 10; j++) {
-            __ASM volatile ("nop");
-        }
-    }
+    delay_us(usec);
 }
 
 /* Write Sector up to maximum. Write in Pages. Attention: Pageprog keeps the SFlash busy for a few mesec. Theoretically
