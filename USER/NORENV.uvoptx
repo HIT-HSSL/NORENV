@@ -1275,18 +1275,6 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\JESFS\JesFs_II_stm32h750xbh6.c</PathWithFileName>
-      <FilenameWithoutPath>JesFs_II_stm32h750xbh6.c</FilenameWithoutPath>
-      <RteFlg>0</RteFlg>
-      <bShared>0</bShared>
-    </File>
-    <File>
-      <GroupNumber>12</GroupNumber>
-      <FileNumber>81</FileNumber>
-      <FileType>1</FileType>
-      <tvExp>0</tvExp>
-      <tvExpOptDlg>0</tvExpOptDlg>
-      <bDave2>0</bDave2>
       <PathWithFileName>..\JESFS\jesfs_ml.c</PathWithFileName>
       <FilenameWithoutPath>jesfs_ml.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>

@@ -835,11 +835,6 @@
               <FilePath>..\JESFS\jesfs_hl.c</FilePath>
             </File>
             <File>
-              <FileName>JesFs_II_stm32h750xbh6.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\JESFS\JesFs_II_stm32h750xbh6.c</FilePath>
-            </File>
-            <File>
               <FileName>jesfs_ml.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\JESFS\jesfs_ml.c</FilePath>

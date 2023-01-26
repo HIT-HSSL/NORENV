@@ -8,7 +8,7 @@
  *
  *******************************************************************************/
 
-//#include <stdio.h>
+// #include <stdio.h>
 
 /* Required Std. headers */
 #include <stddef.h>
@@ -254,6 +254,26 @@ int16_t sflash_WaitWriteEnabled(void)
         return 0;
     return -102;
 #endif
+}
+
+int16_t sflash_spi_init(void)
+{
+    return 0;
+}
+
+void sflash_spi_close(void)
+{
+    /* Do Nothing */
+    return;
+}
+
+void sflash_wait_usec(uint32_t usec)
+{
+    for (uint32_t i = 0; i < usec; i++) {
+        for (uint32_t j = 0; j < 10; j++) {
+            __ASM volatile ("nop");
+        }
+    }
 }
 
 /* Write Sector up to maximum. Write in Pages. Attention: Pageprog keeps the SFlash busy for a few mesec. Theoretically
