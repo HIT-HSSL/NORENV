@@ -722,6 +722,7 @@ int eHNFFS_find_in_map(eHNFFS_t *eHNFFS, eHNFFS_size_t bits_num, eHNFFS_map_ram_
     int cnt = 0;
     for (; i < max;)
     {
+
         for (; j < eHNFFS_SIZE_T_NUM; j++)
         {
             // Find num sequential sectors to use.
@@ -750,35 +751,44 @@ int eHNFFS_find_in_map(eHNFFS_t *eHNFFS, eHNFFS_size_t bits_num, eHNFFS_map_ram_
         }
     }
 
+    // There are two cases when we change bit map
+    // 1. In the same eHNFFS_size_t, i.e map->buffer[0/1]
+    // 2. In map->buffer[0] and in map->buffer[1]
     if (cnt == num)
     {
-        // Used to turn bit 1 to 0.
+        eHNFFS_size_t origin = i * 32 + j - num;
         eHNFFS_size_t temp = 0;
-        for (int i = 0; i < num; i++)
+
+        // If it's case 2, turn map->buffer[0] first.
+        if (i > 0 && j < num)
+        {
+            for (int k = 0; k < num - j; k++)
+                temp = (temp >> 1) | (1U << 31);
+            map->buffer[0] &= ~temp;
+            origin = 32 * i;
+        }
+
+        // Turn others.
+        temp = 0;
+        for (int k = 0; k < i * 32 + j - origin; k++)
         {
             temp = (temp << 1) | 1U;
         }
+        map->buffer[i] &= ~(temp << ((j < num) ? 0 : j - num));
 
-        // Turn corresponded bits to 0.
-        if (j >= num)
-        {
-            map->buffer[i] &= ~(temp << (j - num));
-        }
-        else
-        {
-            map->buffer[i] &= ~(temp >> (num - j));
-            map->buffer[i - 1] &= ~(temp << (eHNFFS_SIZE_T_NUM - num + j));
-        }
-
-        // other things.
+        // Change other things.
         map->free_num -= num;
         map->index = i * eHNFFS_SIZE_T_NUM + j;
         *begin = bits_num * map->region + map->index - num;
-        return err;
+
+        return cnt;
     }
 
-    *begin = eHNFFS_NULL;
-    return err;
+    if (cnt == 0)
+        *begin = eHNFFS_NULL;
+    else
+        *begin = bits_num * (map->region + 1) - cnt;
+    return cnt;
 }
 
 /**
@@ -889,13 +899,12 @@ int eHNFFS_sectormap_assign(eHNFFS_t *eHNFFS, eHNFFS_flash_manage_ram_t *manager
     map->off = map_addr->off;
 
     // Erase map's (begin, off) and erase times message.
-    size = eHNFFS->cfg->sector_size / 8;
+    size = eHNFFS->cfg->sector_count / 8;
     map = manager->erase_map;
     map->begin = map_addr->begin + num / 2;
     map->off = (map_addr->off + size >= eHNFFS->cfg->sector_size)
                    ? 0
                    : map_addr->off + size;
-
     return err;
 
 cleanup:
@@ -949,7 +958,7 @@ int eHNFFS_smap_change(eHNFFS_t *eHNFFS, eHNFFS_flash_manage_ram_t *manager,
         return err;
     }
 
-    err = eHNFFS_cache_flush(eHNFFS, pcache, NULL, eHNFFS_VALIDATE);
+    err = eHNFFS_cache_flush(eHNFFS, pcache, rcache, eHNFFS_VALIDATE);
     if (err)
     {
         return err;
@@ -961,7 +970,7 @@ int eHNFFS_smap_change(eHNFFS_t *eHNFFS, eHNFFS_flash_manage_ram_t *manager,
     eHNFFS_size_t need_space = 2 * eHNFFS->cfg->sector_count / 8;
     eHNFFS_size_t num = eHNFFS_alignup(need_space, eHNFFS->cfg->sector_size) /
                         eHNFFS->cfg->sector_size;
-    if (map->off + 2 * need_space >= num * eHNFFS->cfg->sector_size)
+    if (map->off + need_space >= num * eHNFFS->cfg->sector_size)
     {
         // We need to find new sector to store map message.
         eHNFFS_size_t new_begin = eHNFFS_NULL;
@@ -1042,13 +1051,14 @@ int eHNFFS_smap_change(eHNFFS_t *eHNFFS, eHNFFS_flash_manage_ram_t *manager,
         eHNFFS_size_t *data2 = (eHNFFS_size_t *)rcache->buffer;
         for (int i = 0; i < size; i += sizeof(eHNFFS_size_t))
         {
-            *data1 |= ~(*data2);
+            // XNOR operation
+            *data1 = ~(*data1 ^ *data2);
             data1++;
             data2++;
         }
 
         // Program the new free map into flash, we don't need to program anything to erase map.
-        err = eHNFFS->cfg->prog(eHNFFS->cfg, new_sector, off, eHNFFS->pcache->buffer, size);
+        err = eHNFFS->cfg->prog(eHNFFS->cfg, new_sector, off, pcache->buffer, size);
         eHNFFS_ASSERT(err <= 0);
         if (err)
         {
@@ -1067,20 +1077,30 @@ int eHNFFS_smap_change(eHNFFS_t *eHNFFS, eHNFFS_flash_manage_ram_t *manager,
             old_sector++;
             old_sector2++;
         }
+        need_space -= size;
     }
 
     eHNFFS_cache_one(eHNFFS, pcache);
     eHNFFS_size_t len = sizeof(eHNFFS_mapaddr_flash_t) + num * sizeof(eHNFFS_size_t);
-    eHNFFS_mapaddr_flash_t addr = {
-        .head = eHNFFS_MKDHEAD(0, 1, eHNFFS_ID_SUPER, eHNFFS_DATA_SECTOR_MAP, len),
-        .begin = map->begin,
-        .off = map->off,
-    };
+    eHNFFS_mapaddr_flash_t *addr = eHNFFS_malloc(len);
+    if (addr == NULL)
+    {
+        err = eHNFFS_ERR_NOMEM;
+        goto cleanup;
+    }
+
+    addr->head = eHNFFS_MKDHEAD(0, 1, eHNFFS_ID_SUPER, eHNFFS_DATA_SECTOR_MAP, len);
+    addr->begin = map->begin;
+    addr->off = map->off;
     for (int i = 0; i < num; i++)
     {
-        addr.erase_times[i] = map->etimes[i];
+        addr->erase_times[i] = map->etimes[i];
     }
-    err = eHNFFS_addr_prog(eHNFFS, eHNFFS->superblock, &addr, len);
+    err = eHNFFS_addr_prog(eHNFFS, eHNFFS->superblock, addr, len);
+
+cleanup:
+    if (addr != NULL)
+        eHNFFS_free(addr);
     return err;
 }
 
@@ -1107,6 +1127,7 @@ int eHNFFS_sector_nextsmap(eHNFFS_t *eHNFFS, eHNFFS_flash_manage_ram_t *manager,
                                 : manager->bfile_map;
     eHNFFS_region_map_ram_t *region_map = manager->region_map;
 
+    // Flushing valid data to nor flash first.
     if (map->region != eHNFFS_NULL)
     {
         err = eHNFFS_map_flush(eHNFFS, map, manager->region_size / 8);
@@ -1116,7 +1137,7 @@ int eHNFFS_sector_nextsmap(eHNFFS_t *eHNFFS, eHNFFS_flash_manage_ram_t *manager,
         }
     }
 
-    if (manager->scan_times != eHNFFS_WL_START)
+    if (manager->scan_times < eHNFFS_WL_START)
     {
         // When first scan flash, reserve is default to region_num - 1.
         // So we can use it as index when scan_times is 0.
@@ -1134,8 +1155,10 @@ int eHNFFS_sector_nextsmap(eHNFFS_t *eHNFFS, eHNFFS_flash_manage_ram_t *manager,
             region_map->free_region[i] &= ~(1U << j);
             region_map->reserve++;
 
-            *region_num++;
+            *region_num = *region_num + 1;
+            *region_index = region_map->reserve;
             region_buffer[i] &= ~(1U << j);
+
             return err;
         }
 
@@ -1151,14 +1174,16 @@ int eHNFFS_sector_nextsmap(eHNFFS_t *eHNFFS, eHNFFS_flash_manage_ram_t *manager,
             }
 
             // Find the next used region.
-            if ((region_map->dir_region[i] >> j) & 1U)
+            // In nor flash, bit 0 means used, bit 1 means not used.
+            if (!((region_buffer[i] >> j) & 1U))
             {
                 err = eHNFFS_ram_map_change(eHNFFS, *region_index, manager->region_size, map);
+                *region_index = *region_index + 1;
                 return err;
             }
 
             // Find the next region to use
-            *region_index++;
+            *region_index = *region_index + 1;
             j++;
             if (j == eHNFFS_SIZE_T_NUM)
             {
@@ -1175,12 +1200,14 @@ int eHNFFS_sector_nextsmap(eHNFFS_t *eHNFFS, eHNFFS_flash_manage_ram_t *manager,
                 err = eHNFFS_smap_change(eHNFFS, manager, eHNFFS->pcache, eHNFFS->rcache);
                 if (err)
                 {
+                    printf("err is %d\n", err);
                     return err;
                 }
             }
         }
     }
-    else if (manager->scan_times == eHNFFS_WL_START)
+    else if (manager->scan_times == eHNFFS_WL_START ||
+             manager->scan_times == eHNFFS_WL_ING)
     {
         // Change sector map with wl module.
         eHNFFS_wl_ram_t *wl = manager->wl;
@@ -1254,7 +1281,6 @@ int eHNFFS_sectors_find(eHNFFS_t *eHNFFS, eHNFFS_flash_manage_ram_t *manager, eH
                         int type, eHNFFS_size_t *begin)
 {
     int err = eHNFFS_ERR_OK;
-
     eHNFFS_map_ram_t *map = (type == eHNFFS_SECTOR_DIR)
                                 ? manager->dir_map
                                 : manager->bfile_map;
@@ -1263,7 +1289,6 @@ int eHNFFS_sectors_find(eHNFFS_t *eHNFFS, eHNFFS_flash_manage_ram_t *manager, eH
     eHNFFS_size_t record[2];
     record[1] = eHNFFS_NULL;
     record[0] = 0;
-
     while (true)
     {
         if (manager->scan_times < eHNFFS_WL_START)
@@ -1336,7 +1361,7 @@ int eHNFFS_sectors_find(eHNFFS_t *eHNFFS, eHNFFS_flash_manage_ram_t *manager, eH
         }
 
         // There is no more space in the region, we should find a new region.
-        if (map->free_num < num)
+        if (map->free_num == 0)
         {
             last_region = map->region;
             err = eHNFFS_sector_nextsmap(eHNFFS, manager, type);
@@ -1355,17 +1380,89 @@ int eHNFFS_sectors_find(eHNFFS_t *eHNFFS, eHNFFS_flash_manage_ram_t *manager, eH
         }
 
         err = eHNFFS_find_in_map(eHNFFS, manager->region_size, map, num, begin);
-        if (err)
+        if (err < 0)
         {
             return err;
         }
 
-        if (*begin != eHNFFS_NULL)
+        if (*begin != eHNFFS_NULL && err == num)
         {
+            err = eHNFFS_ERR_OK;
             break;
         }
-    }
+        else
+        {
+            // Debug, TODO
+            // Attention here!!!,There must be something wrong here,
+            // but now it's no need to worry.
 
+            // In current region, we can get err sequential sectors, but still need rest.
+            // So we try to find whether or not we can get it in the next region.
+            int rest = num - err;
+            int i = (map->region + 1) / eHNFFS_SIZE_T_NUM;
+            int j = (map->region + 1) % eHNFFS_SIZE_T_NUM;
+            uint32_t *temp_region =
+                (type == eHNFFS_SECTOR_DIR) ? manager->region_map->dir_region
+                                            : manager->region_map->bfile_region;
+            if (!(manager->region_map->free_region[i] & (1U << j) ||
+                  temp_region[i] & (1U << j)) &&
+                map->region + 1 < 8191)
+            {
+                *begin = eHNFFS_NULL;
+                continue;
+            }
+
+            // Read bit map of the next region.
+            int buffer[manager->region_size / eHNFFS_SIZE_T_NUM];
+            int temp_off = map->off + (map->region + 1) * manager->region_size / 8;
+            err = eHNFFS->cfg->read(eHNFFS->cfg, map->begin, temp_off, buffer, manager->region_size / 8);
+            eHNFFS_ASSERT(err <= 0);
+            if (err < 0)
+                return err;
+
+            int temp_cnt = 0;
+            for (i = 0; i < manager->region_size / eHNFFS_SIZE_T_NUM; i++)
+            {
+                for (j = 0; j < eHNFFS_SIZE_T_NUM; j++)
+                {
+                    if (buffer[i] & (1U << j))
+                    {
+                        temp_cnt++;
+                        if (temp_cnt == rest)
+                        {
+                            // We can get the rest sector in the region, so turn bits to 0.
+                            int temp_begin = *begin;
+                            *begin = eHNFFS_NULL;
+                            err = eHNFFS_find_in_map(eHNFFS, manager->region_size, map, num - rest, begin);
+                            eHNFFS_ASSERT(*begin == temp_begin);
+                            if (err < 0)
+                                return err;
+                            err = eHNFFS_sector_nextsmap(eHNFFS, manager, type);
+                            if (err)
+                                return err;
+                            *begin = eHNFFS_NULL;
+                            err = eHNFFS_find_in_map(eHNFFS, manager->region_size, map, rest, begin);
+                            eHNFFS_ASSERT(*begin == map->region * manager->region_size);
+                            if (err < 0)
+                                return err;
+
+                            *begin = temp_begin;
+                            return eHNFFS_ERR_OK;
+                        }
+                    }
+                    else
+                    {
+                        err = eHNFFS_sector_nextsmap(eHNFFS, manager, type);
+                        if (err)
+                            return err;
+                        temp_cnt = -1;
+                    }
+                }
+                if (temp_cnt < 0)
+                    break;
+            }
+        }
+    }
     return err;
 }
 
@@ -1486,7 +1583,6 @@ int eHNFFS_sector_alloc(eHNFFS_t *eHNFFS, eHNFFS_flash_manage_ram_t *manager, in
 
         sector++;
     }
-
     return err;
 }
 
@@ -1518,6 +1614,8 @@ int eHNFFS_emap_set(eHNFFS_t *eHNFFS, eHNFFS_flash_manage_ram_t *manager,
         {
             return err;
         }
+
+        memset(map->buffer, -1, manager->region_size / 8);
         map->region = region;
         map->index = 0;
         map->free_num = 0;
@@ -1545,7 +1643,7 @@ int eHNFFS_emap_set(eHNFFS_t *eHNFFS, eHNFFS_flash_manage_ram_t *manager,
                 {
                     return err;
                 }
-
+                memset(map->buffer, -1, manager->region_size / 8);
                 map->region++;
                 map->index = 0;
                 i = 0;
@@ -1822,10 +1920,11 @@ int eHNFFS_id_alloc(eHNFFS_t *eHNFFS, eHNFFS_size_t *id)
         {
             err = eHNFFS_find_in_map(eHNFFS, eHNFFS->id_map->bits_in_buffer,
                                      idmap, 1, id);
-            if (err)
+            if (err < 0)
             {
                 return err;
             }
+            err = eHNFFS_ERR_OK;
 
             if (*id != eHNFFS_NULL)
             {

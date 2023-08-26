@@ -158,6 +158,35 @@ void raw_write(struct nfvfs *fs, int fd, int size)
     size -= min;
   }
   // if (fs->name[0] != 'e' && fs->name[1] != 'H')
+  // nfvfs_fsync(fs, fd);
+  uint32_t end = (uint32_t)xTaskGetTickCount();
+  // printf("write file time is %u, %u, %u\r\n", end - start, start, end);
+  total_time += end - start;
+  total_write += end - start;
+  return;
+}
+
+void raw_write_fsync(struct nfvfs *fs, int fd, int size)
+{
+  char test_buffer[size > 4096 ? 4096 : size];
+  // char test_buffer[4096];
+
+  uint32_t start = (uint32_t)xTaskGetTickCount();
+  while (size > 0)
+  {
+    int min = (size > 4096) ? 4096 : size;
+    int ret = nfvfs_write(fs, fd, test_buffer, min);
+    if (ret < 0)
+    {
+      printf("write file failed: %d\r\n", ret);
+    }
+    else
+    {
+      // printf("write file success: %d\r\n", fd);
+    }
+    size -= min;
+  }
+  // if (fs->name[0] != 'e' && fs->name[1] != 'H')
   nfvfs_fsync(fs, fd);
   uint32_t end = (uint32_t)xTaskGetTickCount();
   // printf("write file time is %u, %u, %u\r\n", end - start, start, end);
@@ -179,6 +208,27 @@ void raw_lseek(struct nfvfs *fs, int fd, int off)
     // printf("seek file success: %d\r\n", fd);
   }
   // if (fs->name[0] != 'e' && fs->name[1] != 'H')
+  // nfvfs_fsync(fs, fd);
+  uint32_t end = (uint32_t)xTaskGetTickCount();
+  // printf("lseek file time is %u, %u, %u\r\n", end - start, start, end);
+  total_time += end - start;
+  total_lseek += end - start;
+  return;
+}
+
+void raw_lseek_fsync(struct nfvfs *fs, int fd, int off)
+{
+  uint32_t start = (uint32_t)xTaskGetTickCount();
+  int ret = nfvfs_lseek(fs, fd, off, NFVFS_SEEK_SET);
+  if (ret < 0)
+  {
+    printf("lseek file failed: %d\r\n", ret);
+  }
+  else
+  {
+    // printf("seek file success: %d\r\n", fd);
+  }
+  // if (fs->name[0] != 'e' && fs->name[1] != 'H')
   nfvfs_fsync(fs, fd);
   uint32_t end = (uint32_t)xTaskGetTickCount();
   // printf("lseek file time is %u, %u, %u\r\n", end - start, start, end);
@@ -188,6 +238,35 @@ void raw_lseek(struct nfvfs *fs, int fd, int off)
 }
 
 void raw_read(struct nfvfs *fs, int fd, int size)
+{
+  char test_buffer[size > 4096 ? 4096 : size];
+  // char test_buffer[4096];
+
+  uint32_t start = (uint32_t)xTaskGetTickCount();
+  while (size > 0)
+  {
+    int min = (size > 4096) ? 4096 : size;
+    int ret = nfvfs_read(fs, fd, test_buffer, min);
+    if (ret < 0)
+    {
+      printf("read file failed: %d\r\n", ret);
+    }
+    else
+    {
+      // printf("read file success: %d\r\n", fd);
+    }
+    size -= min;
+  }
+  // if (fs->name[0] != 'e' && fs->name[1] != 'H')
+  // nfvfs_fsync(fs, fd);
+  uint32_t end = (uint32_t)xTaskGetTickCount();
+  // printf("read file time is %u, %u, %u\r\n", end - start, start, end);
+  total_time += end - start;
+  total_read += end - start;
+  return;
+}
+
+void raw_read_fsync(struct nfvfs *fs, int fd, int size)
 {
   char test_buffer[size > 4096 ? 4096 : size];
   // char test_buffer[4096];
@@ -297,8 +376,8 @@ void raw_basic_test(struct nfvfs *fs, char *path, int len, int loop)
   uint32_t start = (uint32_t)xTaskGetTickCount();
   for (int i = 0; i < loop; i++)
   {
-    raw_lseek(fs, fd, 0);
-    raw_write(fs, fd, len);
+    raw_lseek_fsync(fs, fd, 0);
+    raw_write_fsync(fs, fd, len);
   }
   uint32_t end = (uint32_t)xTaskGetTickCount();
   printf("Sequential wirte time is %u\r\n", end - start);
@@ -306,8 +385,8 @@ void raw_basic_test(struct nfvfs *fs, char *path, int len, int loop)
   start = (uint32_t)xTaskGetTickCount();
   for (int i = 0; i < loop; i++)
   {
-    raw_lseek(fs, fd, 0);
-    raw_read(fs, fd, len);
+    raw_lseek_fsync(fs, fd, 0);
+    raw_read_fsync(fs, fd, len);
   }
   end = (uint32_t)xTaskGetTickCount();
   printf("Sequential read time is %u\r\n", end - start);
@@ -506,7 +585,7 @@ FRESULT write_busybox_test(
         {
           int len = (size > 4096) ? 4096 : size;
           size -= len;
-          raw_write(dst_fs, fd2, len);
+          raw_write_fsync(dst_fs, fd2, len);
         }
         raw_close(dst_fs, fd2);
       }
@@ -518,14 +597,43 @@ FRESULT write_busybox_test(
   return res;
 }
 
+int update_busybox_test(char *path, struct nfvfs *dst_fs)
+{
+  int err = 0;
+
+  int fd = raw_open(dst_fs, path, O_RDWR | O_CREAT, S_ISREG);
+  int my_size = 2675216;
+  // int test_size = 10 * 1024;
+  // while (test_size > 0)
+  // {
+  //   int min = (test_size > 1024) ? 1024 : test_size;
+  //   raw_lseek(dst_fs, fd, rand() % (my_size - 1024));
+  //   raw_write(dst_fs, fd, min);
+  //   my_size += min;
+  //   test_size -= min;
+  // }
+  int test_size = 15 * 1024;
+  while (test_size > 0)
+  {
+    int min = (test_size > 1024) ? 1024 : test_size;
+    raw_lseek_fsync(dst_fs, fd, rand() % (my_size));
+    raw_write_fsync(dst_fs, fd, min);
+    my_size += min;
+    test_size -= min;
+  }
+  raw_close(dst_fs, fd);
+  return err;
+}
+
 int read_busybox_test(char *path, struct nfvfs *dst_fs)
 {
   int err = 0;
 
   // Debug
-  printf("dir path is %s\r\n", path);
+  // printf("dir path is %s\r\n", path);
 
   int fd = nfvfs_open(dst_fs, path, O_APPEND, S_ISDIR);
+  // int fd = raw_open(dst_fs, path, O_RDWR | O_CREAT, S_ISDIR);
   if (fd < 0)
   {
     printf("open dir error: %s, %d\r\n", path, fd);
@@ -548,7 +656,7 @@ int read_busybox_test(char *path, struct nfvfs *dst_fs)
     if (info.type == NFVFS_TYPE_REG)
     {
       cnt++;
-      printf("%s\r\n", info.name);
+      // printf("%s\r\n", info.name);
     }
     else if (info.type == NFVFS_TYPE_DIR)
     {
@@ -589,7 +697,6 @@ cleanup:
 
 void busybox_test(const char *fsname)
 {
-  nor_flash_message_reset();
   uint32_t start = (uint32_t)xTaskGetTickCount();
 
   struct nfvfs *dst_fs;
@@ -621,30 +728,67 @@ void busybox_test(const char *fsname)
   }
 
   printf("Write busybox test\r\n");
+  nor_flash_message_reset();
   total_time_reset();
   raw_mount(dst_fs);
   strcpy(buff, "2:/busybox");
   res = write_busybox_test(buff, dst_fs, fsname);
   total_time_print();
+  nor_flash_message_print();
+  printf("\r\n\r\n");
 
-  printf("Read busybox test\r\n");
+  printf("Update busybox test\r\n");
+  nor_flash_message_reset();
   total_time_reset();
   memset(buff, 0, 256);
+  // TODO, update busybox test.
+  if (fsname[0] == 'e' && fsname[1] == 'H')
+    strcpy(buff, "1:/busybox/bin/busybox");
+  else
+    strcpy(buff, "/busybox/bin/busybox");
+  int my_res = update_busybox_test(buff, dst_fs);
+  if (my_res < 0)
+  {
+    printf("update error,%d\r\n", my_res);
+  }
+  total_time_print();
+  nor_flash_message_print();
+  printf("\r\n\r\n");
 
+  printf("traverse busybox test\r\n");
+  nor_flash_message_reset();
+  total_time_reset();
+  memset(buff, 0, 256);
   if (fsname[0] == 'e' && fsname[1] == 'H')
     strcpy(buff, "1:/busybox");
   else
     strcpy(buff, "/busybox");
-
-  res = read_busybox_test(buff, dst_fs);
-
-  raw_fssize(dst_fs);
-  raw_unmount(dst_fs);
+  read_busybox_test(buff, dst_fs);
   total_time_print();
+  nor_flash_message_print();
 
+  // uint32_t start = (uint32_t)xTaskGetTickCount();
+  // if (fsname[0] == 'e' && fsname[1] == 'H')
+  //   strcpy(buff, "1:/busybox/bin/busybox");
+  // else
+  //   strcpy(buff, "/busybox/bin/busybox");
+  // int fd = raw_open(dst_fs, buff, O_RDWR | O_CREAT, S_ISREG);
+  // raw_lseek(dst_fs, fd, 0);
+  // int my_size = 2675216;
+  // while (my_size > 0)
+  // {
+  //   int size = (my_size > 4096) ? 4096 : my_size;
+  //   raw_read(dst_fs, fd, size);
+  //   my_size -= size;
+  // }
+  // raw_close(dst_fs, fd);
+  // uint32_t end = (uint32_t)xTaskGetTickCount();
+  // printf("Total read binary time is %d, %d, %d\r\n", end - start, start, end);
+
+  // raw_fssize(dst_fs);
+  raw_unmount(dst_fs);
   uint32_t end = (uint32_t)xTaskGetTickCount();
   printf("Total project time is %d, %d, %d\r\n", end - start, start, end);
-  nor_flash_message_print();
 }
 
 /**
@@ -674,11 +818,29 @@ void new_operation_test(const char *fsname)
   else
     strcpy(buff, "/");
 
-  for (int i = 0; i < 4; i++)
-  {
-    printf("dir layer %d\r\n", i + 1);
-    layer_test(dst_fs, buff);
-  }
+  // for (int i = 0; i < 4; i++)
+  // {
+  //   printf("dir layer %d\r\n", i + 1);
+  //   layer_test(dst_fs, buff);
+  // }
+
+  int len = strlen(buff);
+  buff[len] = 'a';
+  buff[len + 1] = 'a';
+  int fd = raw_open(dst_fs, buff, O_RDWR | O_CREAT, S_ISREG);
+  raw_write(dst_fs, fd, 12 * 1024 * 1024);
+  raw_close(dst_fs, fd);
+
+  memset(buff, 0, 128);
+  if (fsname[0] == 'e' && fsname[1] == 'H')
+    strcpy(buff, "1:/");
+  else
+    strcpy(buff, "/");
+  layer_test(dst_fs, buff);
+  len = strlen(buff);
+  burn_test(dst_fs, buff, len);
+  read_test(dst_fs, buff, len);
+  remove_test(dst_fs, buff, len);
 
   raw_unmount(dst_fs);
 
@@ -689,10 +851,10 @@ void new_operation_test(const char *fsname)
 void layer_test(struct nfvfs *dst_fs, char *path)
 {
   int len = strlen(path);
-  burn_test(dst_fs, path, len);
-  read_test(dst_fs, path, len);
-  update_test(dst_fs, path, len);
-  remove_test(dst_fs, path, len);
+  // burn_test(dst_fs, path, len);
+  // read_test(dst_fs, path, len);
+  // // update_test(dst_fs, path, len);
+  // remove_test(dst_fs, path, len);
   strcpy(&path[len], "layer");
   int fd = raw_open(dst_fs, path, LFS_O_CREAT, S_ISDIR);
   len = strlen(path);
@@ -702,50 +864,42 @@ void layer_test(struct nfvfs *dst_fs, char *path)
 
 void burn_test(struct nfvfs *dst_fs, char *path, int len)
 {
-  printf("\r\n\r\n\r\nburn test begin\r\n");
-  total_time_reset();
-  nor_flash_message_reset();
-  uint32_t start = (uint32_t)xTaskGetTickCount();
-
   char a = 'a';
   char b = 'a';
   int fd;
 
-  uint32_t temp_begin = (uint32_t)xTaskGetTickCount();
+  printf("\r\n\r\n\r\ncollect test begin\r\n");
+  total_time_reset();
+  nor_flash_message_reset();
+  uint32_t start = (uint32_t)xTaskGetTickCount();
+
+  // uint32_t temp_begin = (uint32_t)xTaskGetTickCount();
+  int read_size = 0;
   for (int i = 0; i < 10; i++)
   {
+    read_size += 8;
     path[len] = a;
-    b = 'a';
+    if (i == 0)
+      b = 'b';
+    else
+      b = 'a';
     for (int j = 0; j < 10; j++)
     {
       path[len + 1] = b;
       // printf("Before path is %s\r\n", path);
       fd = raw_open(dst_fs, path, O_RDWR | O_CREAT, S_ISREG);
       // printf("After path is %s\r\n", path);
-      raw_write(dst_fs, fd, 4);
-      raw_lseek(dst_fs, fd, 0);
-      raw_read(dst_fs, fd, 4);
+      raw_write_fsync(dst_fs, fd, read_size);
+      // raw_lseek(dst_fs, fd, 0);
+      // raw_read(dst_fs, fd, 4);
       raw_close(dst_fs, fd);
       b++;
     }
     a++;
   }
-  uint32_t temp_end = (uint32_t)xTaskGetTickCount();
-  printf("burn little file time is %d\r\n", temp_end - temp_begin);
-
-  temp_begin = (uint32_t)xTaskGetTickCount();
-  path[len] = a;
-  path[len + 1] = b;
-  fd = raw_open(dst_fs, path, O_RDWR | O_CREAT, S_ISREG);
-  raw_write(dst_fs, fd, 2 * 1024 * 1024);
-  raw_lseek(dst_fs, fd, 0);
-  raw_read(dst_fs, fd, 2 * 1024 * 1024);
-  raw_close(dst_fs, fd);
-  temp_end = (uint32_t)xTaskGetTickCount();
-  printf("burn big file time is %d\r\n", temp_end - temp_begin);
 
   uint32_t end = (uint32_t)xTaskGetTickCount();
-  printf("Test burn time is %d\r\n", end - start);
+  printf("Test collect time is %d\r\n", end - start);
   total_time_print();
   nor_flash_message_print();
 }
@@ -761,34 +915,29 @@ void read_test(struct nfvfs *dst_fs, char *path, int len)
   char b = 'a';
   int fd;
 
-  uint32_t temp_begin = (uint32_t)xTaskGetTickCount();
+  // uint32_t temp_begin = (uint32_t)xTaskGetTickCount();
+  int read_size = 0;
   for (int i = 0; i < 10; i++)
   {
+    read_size += 8;
     path[len] = a;
-    b = 'a';
+    if (i == 0)
+      b = 'b';
+    else
+      b = 'a';
     for (int j = 0; j < 10; j++)
     {
       path[len + 1] = b;
       fd = raw_open(dst_fs, path, O_RDWR | O_CREAT, S_ISREG);
-      raw_lseek(dst_fs, fd, 0);
-      raw_read(dst_fs, fd, 4);
+      raw_lseek_fsync(dst_fs, fd, 0);
+      raw_read_fsync(dst_fs, fd, read_size);
       raw_close(dst_fs, fd);
       b++;
+
+      // nfvfs_sync(dst_fs);
     }
     a++;
   }
-  uint32_t temp_end = (uint32_t)xTaskGetTickCount();
-  printf("read small file time is %d\r\n", temp_end - temp_begin);
-
-  temp_begin = (uint32_t)xTaskGetTickCount();
-  path[len] = a;
-  path[len + 1] = b;
-  fd = raw_open(dst_fs, path, O_RDWR | O_CREAT, S_ISREG);
-  raw_lseek(dst_fs, fd, 0);
-  raw_read(dst_fs, fd, 2 * 1024 * 1024);
-  raw_close(dst_fs, fd);
-  temp_end = (uint32_t)xTaskGetTickCount();
-  printf("read big file time is %d\r\n", temp_end - temp_begin);
 
   uint32_t end = (uint32_t)xTaskGetTickCount();
   printf("Test read time is %d\r\n", end - start);
@@ -867,24 +1016,27 @@ void remove_test(struct nfvfs *dst_fs, char *path, int len)
   uint32_t start = (uint32_t)xTaskGetTickCount();
 
   char a = 'a';
-  char b = 'a';
+  char b = 'b';
   int fd;
 
-  int type = (dst_fs->name[0] == 'e' && dst_fs->name[1] == 'H')
-                 ? NFVFS_REMOVE_FHANDLER
-                 : NFVFS_REMOVE_PATH;
+  int type = (dst_fs->name[0] == 'l' && dst_fs->name[1] == 'i')
+                 ? NFVFS_REMOVE_PATH
+                 : NFVFS_REMOVE_FHANDLER;
 
-  uint32_t temp_begin = (uint32_t)xTaskGetTickCount();
+  // uint32_t temp_begin = (uint32_t)xTaskGetTickCount();
   for (int i = 0; i < 10; i++)
   {
     path[len] = a;
-    b = 'a';
+    if (i == 0)
+      b = 'b';
+    else
+      b = 'a';
     for (int j = 0; j < 10; j++)
     {
       path[len + 1] = b;
       fd = raw_open(dst_fs, path, O_RDWR | O_CREAT, S_ISREG);
-      raw_lseek(dst_fs, fd, 0);
-      raw_read(dst_fs, fd, 4);
+      // raw_lseek(dst_fs, fd, 0);
+      // raw_read(dst_fs, fd, 4);
 
       // TODO，Used for littlefs
       if (type == NFVFS_REMOVE_PATH)
@@ -894,11 +1046,13 @@ void remove_test(struct nfvfs *dst_fs, char *path, int len)
 
       raw_delete(dst_fs, fd, path, S_ISREG, type);
       b++;
+
+      // nfvfs_sync(dst_fs);
     }
     a++;
   }
-  uint32_t temp_end = (uint32_t)xTaskGetTickCount();
-  printf("remove small file time is %d\r\n", temp_end - temp_begin);
+  // uint32_t temp_end = (uint32_t)xTaskGetTickCount();
+  // printf("remove small file time is %d\r\n", temp_end - temp_begin);
 
   uint32_t end = (uint32_t)xTaskGetTickCount();
   printf("Test remove time is %d\r\n", end - start);
@@ -956,23 +1110,23 @@ void random_write_test(const char *fsname)
   int tail = strlen(path) - 1;
   char my_cnt = 'A';
 
-  for (int i = 0; i < 10; i++)
+  for (int i = 0; i < 1; i++)
   {
-    printf("loop %d\r\n", i);
+    // printf("loop %d\r\n", i);
     int fd = raw_open(dst_fs, path, O_RDWR | O_CREAT, S_ISREG);
     if (fd < 0)
       printf("open error is %d\r\n", fd);
     my_cnt++;
     path[tail] = my_cnt;
 
-    uint32_t start = (uint32_t)xTaskGetTickCount();
+    // uint32_t start = (uint32_t)xTaskGetTickCount();
     int file_size = 2 * 1024 * 1024;
     raw_write(dst_fs, fd, file_size);
-    uint32_t end = (uint32_t)xTaskGetTickCount();
-    printf("Big file write time is %d\r\n", end - start);
+    // uint32_t end = (uint32_t)xTaskGetTickCount();
+    // printf("Big file write time is %d\r\n", end - start);
 
-    start = (uint32_t)xTaskGetTickCount();
-    int test_size = 2 * (i + 1) * 1024;
+    uint32_t start = (uint32_t)xTaskGetTickCount();
+    int test_size = 20 * 1024;
     while (test_size > 0)
     {
       int min = (test_size > 1024) ? 1024 : test_size;
@@ -981,9 +1135,13 @@ void random_write_test(const char *fsname)
       raw_write(dst_fs, fd, min);
       file_size += min;
       test_size -= min;
+
+      if ((test_size / 1024) % 2 == 0)
+      {
+        uint32_t end = (uint32_t)xTaskGetTickCount();
+        printf("Random write %d time is %d\r\n", 20 - test_size / 1024, end - start);
+      }
     }
-    end = (uint32_t)xTaskGetTickCount();
-    printf("Random write time is %d\r\n", end - start);
 
     raw_close(dst_fs, fd);
   }
@@ -1014,43 +1172,227 @@ void random_read_test(const char *fsname)
   int tail = strlen(path) - 1;
   char my_cnt = 'A';
 
-  for (int i = 0; i < 10; i++)
+  for (int i = 0; i < 1; i++)
   {
     int num = 0;
     int temp_arr[20];
     int file_size = 2 * 1024 * 1024;
-    for (num = 0; num < 2 * (i + 1); num++)
+    for (num = 0; num < 20; num++)
     {
       temp_arr[num] = rand() % (file_size - 1024);
     }
 
-    printf("loop %d\r\n", i);
+    // printf("loop %d\r\n", i);
     int fd = raw_open(dst_fs, path, O_RDWR | O_CREAT, S_ISREG);
     if (fd < 0)
       printf("open error is %d\r\n", fd);
     my_cnt++;
     path[tail] = my_cnt;
 
-    uint32_t start = (uint32_t)xTaskGetTickCount();
+    // uint32_t start = (uint32_t)xTaskGetTickCount();
     raw_write(dst_fs, fd, file_size);
-    uint32_t end = (uint32_t)xTaskGetTickCount();
-    printf("Big file write time is %d\r\n", end - start);
+    // uint32_t end = (uint32_t)xTaskGetTickCount();
+    // printf("Big file write time is %d\r\n", end - start);
 
-    start = (uint32_t)xTaskGetTickCount();
-    for (int j = 0; j < 50; j++)
+    // start = (uint32_t)xTaskGetTickCount();
+    // for (int j = 0; j < 50; j++)
+    // {
+    //   for (int k = 0; k < num; k++)
+    //   {
+    //     raw_lseek(dst_fs, fd, temp_arr[k]);
+    //     raw_read(dst_fs, fd, 1024);
+    //   }
+    // }
+    // end = (uint32_t)xTaskGetTickCount();
+    // printf("Random read time is %d\r\n", end - start);
+
+    uint32_t start = (uint32_t)xTaskGetTickCount();
+    for (int k = 0; k < num; k++)
     {
-      for (int k = 0; k < num; k++)
+      raw_lseek(dst_fs, fd, temp_arr[k]);
+      raw_read(dst_fs, fd, 1024);
+      if (k % 2 == 1)
       {
-        raw_lseek(dst_fs, fd, temp_arr[k]);
-        raw_read(dst_fs, fd, 1024);
+        uint32_t end = (uint32_t)xTaskGetTickCount();
+        printf("Random read %d time is %d\r\n", k + 1, end - start);
       }
     }
-    end = (uint32_t)xTaskGetTickCount();
-    printf("Random read time is %d\r\n", end - start);
 
     raw_close(dst_fs, fd);
   }
 
   raw_unmount(dst_fs);
   nor_flash_message_print();
+}
+
+/**
+ * -----------------------------------------------------------------------------------------------------------------------------------------------
+ * ------------------------------------------------------------    GC Module test    -------------------------------------------------------------
+ * -----------------------------------------------------------------------------------------------------------------------------------------------
+ */
+
+void gc_test(const char *fsname)
+{
+  // Get fs in nfvfs by fsname.
+  struct nfvfs *dst_fs;
+  dst_fs = get_nfvfs(fsname);
+  if (!dst_fs)
+  {
+    printf("\r\nFailed to get %s, making sure you have register it\r\n", fsname);
+    return;
+  }
+
+  // int my_total_create = 0;
+
+  // Mount function
+  raw_mount(dst_fs);
+
+  // File's path
+  char path[64];
+  memset(path, 0, 64);
+  if (fsname[0] == 'e' && fsname[1] == 'H')
+    strcpy(path, "1:/test1.?");
+  else
+    strcpy(path, "/test1.?");
+  int tail = strlen(path);
+  char my_cnt1 = 'A';
+  char my_cnt2 = 'A';
+
+  uint32_t start;
+
+  start = (uint32_t)xTaskGetTickCount();
+  char temp_cnt1 = my_cnt1;
+  char temp_cnt2 = my_cnt2;
+  for (int i = 0; i < 2000; i++)
+  {
+    // Open and then change the path.
+    path[tail - 1] = my_cnt1;
+    path[tail] = my_cnt2;
+    // uint32_t start = (uint32_t)xTaskGetTickCount();
+    int fd = raw_open(dst_fs, path, O_RDWR | O_CREAT, S_ISREG);
+    // uint32_t end = (uint32_t)xTaskGetTickCount();
+    // my_total_create += end - start;
+    if (fd < 0)
+      printf("open error is %d\n", fd);
+    raw_write(dst_fs, fd, 4);
+    raw_close(dst_fs, fd);
+    my_cnt1++;
+    if (my_cnt1 == 'z')
+    {
+      my_cnt1 = 'A';
+      my_cnt2 += 1;
+    }
+
+    if (i % 2 == 0)
+      continue;
+
+    path[tail - 1] = temp_cnt1;
+    path[tail] = temp_cnt2;
+    // For eHNFFS
+    if (fsname[0] == 'e' && fsname[1] == 'H')
+    {
+      fd = raw_open(dst_fs, path, O_RDWR | O_CREAT, S_ISREG);
+      if (fd < 0)
+        printf("open error is %d\n", fd);
+    }
+    int type = (dst_fs->name[0] == 'e' && dst_fs->name[1] == 'H')
+                   ? NFVFS_REMOVE_FHANDLER
+                   : NFVFS_REMOVE_PATH;
+    raw_delete(dst_fs, fd, path, S_ISREG, type);
+    temp_cnt1 += 2;
+    if (temp_cnt1 >= 'z')
+    {
+      temp_cnt1 = (temp_cnt1 == 'z') ? 'A' : 'B';
+      temp_cnt2 += 1;
+    }
+
+    // if (i % 500 == 499)
+    // {
+    //   uint32_t end = (uint32_t)xTaskGetTickCount();
+    //   printf("small file %d: %d\r\n", i + 1, end - start);
+    // }
+  }
+
+  // // TODO
+  // // Big file's random write and gc
+  // for (int i = 0; i < 1; i++)
+  // {
+  //   // Open and then change the path.
+  //   path[tail - 1] = my_cnt1;
+  //   path[tail] = my_cnt2;
+
+  //   // No need to open for eHNFFS and littlefs
+  //   // uint32_t start = (uint32_t)xTaskGetTickCount();
+  //   int fd = raw_open(dst_fs, path, O_RDWR | O_CREAT, S_ISREG);
+  //   // uint32_t end = (uint32_t)xTaskGetTickCount();
+  //   // my_total_create += end - start;
+
+  //   if (fd < 0)
+  //     printf("open error is %d\n", fd);
+  //   my_cnt1++;
+  //   if (my_cnt1 == 'z')
+  //   {
+  //     my_cnt1 = 'A';
+  //     my_cnt2 += 1;
+  //   }
+
+  //   int file_size = 2 * 1024 * 1024;
+  //   raw_write(dst_fs, fd, file_size);
+
+  //   start = (uint32_t)xTaskGetTickCount();
+  //   int test_size = 10 * 1024;
+  //   while (test_size > 0)
+  //   {
+  //     int min = (test_size > 1024) ? 1024 : test_size;
+  //     int temp = rand() % file_size;
+  //     temp = (temp > 1024) ? (temp - 1024) : 1024;
+  //     raw_lseek(dst_fs, fd, temp);
+
+  //     // uint32_t start = (uint32_t)xTaskGetTickCount();
+  //     raw_write(dst_fs, fd, min);
+  //     // uint32_t end = (uint32_t)xTaskGetTickCount();
+  //     // my_total_create += (end - start);
+  //     // printf("time is %d\r\n", my_total_create);
+
+  //     test_size -= min;
+  //     // if ((test_size / 1024) % 10 == 0)
+  //     // {
+  //     //   uint32_t end = (uint32_t)xTaskGetTickCount();
+  //     //   printf("large file %d: %d\r\n", 40 - test_size / 1024, end - start);
+  //     // }
+  //   }
+
+  //   raw_close(dst_fs, fd);
+  // }
+
+  // For SPIFFS
+  uint32_t end = (uint32_t)xTaskGetTickCount();
+  printf("prepare phase time is %d\r\n", end - start);
+  int err = nfvfs_gc(dst_fs);
+  end = (uint32_t)xTaskGetTickCount();
+  printf("gc return is %d, time is %d\r\n", err, end - start);
+
+  // Unmount fs
+  raw_unmount(dst_fs);
+}
+
+void corrupt_test(void)
+{
+  int off = 0;
+  uint32_t head;
+  for (int i = 0; i < 8192; i++)
+  {
+    off = i * 4096;
+    W25QXX_Read((uint8_t *)&head, off, 4);
+  }
+
+  uint8_t buffer[4096];
+  // sector map.
+  W25QXX_Write_NoCheck(buffer, 0, 1024);
+  // region map.
+  W25QXX_Write_NoCheck(buffer, 0, 2 * 128 / 8);
+  // wl array.
+  W25QXX_Write_NoCheck(buffer, 0, 4 + 8 * 128);
+  for (int i = 0; i < 10; i++)
+    W25QXX_Write_NoCheck(buffer, 0, 4);
 }

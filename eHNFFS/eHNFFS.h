@@ -214,7 +214,7 @@ extern "C"
 #endif
 
 #ifndef eHNFFS_FILE_INDEX_LEN
-#define eHNFFS_FILE_INDEX_LEN 41
+#define eHNFFS_FILE_INDEX_LEN 20
 #endif
 
     /**

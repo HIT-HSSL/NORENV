@@ -34,8 +34,9 @@ typedef unsigned char u8_t;
 #endif
 // Set spiffs debug output call for garbage collecting.
 #ifndef SPIFFS_GC_DBG
-#define SPIFFS_GC_DBG(_f, ...) // printf(_f, ## __VA_ARGS__)
+#define SPIFFS_GC_DBG(_f, ...) // printf(_f, ##__VA_ARGS__)
 #endif
+
 // Set spiffs debug output call for caching.
 #ifndef SPIFFS_CACHE_DBG
 #define SPIFFS_CACHE_DBG(_f, ...) // printf(_f, ## __VA_ARGS__)
@@ -115,7 +116,7 @@ typedef unsigned char u8_t;
 
 // Define maximum number of gc runs to perform to reach desired free pages.
 #ifndef SPIFFS_GC_MAX_RUNS
-#define SPIFFS_GC_MAX_RUNS 5
+#define SPIFFS_GC_MAX_RUNS 100000000
 #endif
 
 // Enable/disable statistics on gc. Debug/test purpose only.

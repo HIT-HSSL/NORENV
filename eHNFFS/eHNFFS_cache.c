@@ -94,16 +94,18 @@ int eHNFFS_cache_transition(eHNFFS_t *eHNFFS, void *src_buffer,
     int rest_size;
 
     // Allocate memory for transition.
-    uint8_t *temp_buffer = eHNFFS_malloc(size);
+    uint8_t *temp_buffer = NULL;
+    temp_buffer = eHNFFS_malloc(size);
     if (!temp_buffer)
     {
         err = eHNFFS_ERR_NOMEM;
         goto cleanup;
     }
+    // uint8_t temp_buffer[size];
+    memset(temp_buffer, 0, size);
 
     data1 = src_buffer;
     data2 = temp_buffer + size;
-
     eHNFFS_head_t head;
     eHNFFS_size_t len;
     rest_size = size;
@@ -112,6 +114,7 @@ int eHNFFS_cache_transition(eHNFFS_t *eHNFFS, void *src_buffer,
     while (rest_size > 0)
     {
         head = *(eHNFFS_head_t *)data1;
+
         len = eHNFFS_dhead_dsize(head);
         if (head == eHNFFS_NULL ||
             rest_size < sizeof(eHNFFS_head_t) ||
@@ -126,13 +129,11 @@ int eHNFFS_cache_transition(eHNFFS_t *eHNFFS, void *src_buffer,
 
         // Don't need to check data head, because we may not turn
         // written flag to valid when writing.
-
         data2 -= len;
         memcpy(data2, data1, len);
         data1 += len;
         rest_size -= len;
     }
-
     memcpy((uint8_t *)dst_buffer, temp_buffer, size);
 
 cleanup:
@@ -154,10 +155,6 @@ int eHNFFS_cache_cmp(eHNFFS_t *eHNFFS, eHNFFS_size_t sector, eHNFFS_off_t off,
 {
     int err = eHNFFS_ERR_OK;
 
-    // uint8_t *temp_cache = malloc(eHNFFS->cfg->cache_size);
-    // if (temp_cache == NULL)
-    //     return eHNFFS_ERR_NOMEM;
-
     uint8_t *data1 = (uint8_t *)buffer;
     uint8_t *data2 = NULL;
     while (size > 0)
@@ -170,11 +167,6 @@ int eHNFFS_cache_cmp(eHNFFS_t *eHNFFS, eHNFFS_size_t sector, eHNFFS_off_t off,
             goto cleanup;
         }
 
-        // eHNFFS_size_t min = eHNFFS_min(size, eHNFFS->cfg->cache_size);
-        // err = eHNFFS->cfg->read(eHNFFS->cfg, sector, off, temp_cache, min);
-        // if (err < 0)
-        //     goto cleanup;
-
         off += min;
         size -= min;
 
@@ -182,9 +174,6 @@ int eHNFFS_cache_cmp(eHNFFS_t *eHNFFS, eHNFFS_size_t sector, eHNFFS_off_t off,
         // Because we may set type of data in flash to delete directly(don't change cache message),
         // and at this time true data in cache hasn't flashing in flash, so normal compare function
         // isn't work because of delete type and normal type.
-
-        // Debug
-        // data2 = temp_cache;
         data2 = eHNFFS->rcache->buffer;
         for (int i = 0; i < min; i++)
         {
@@ -255,7 +244,6 @@ int eHNFFS_cache_cmp(eHNFFS_t *eHNFFS, eHNFFS_size_t sector, eHNFFS_off_t off,
 
     err = eHNFFS_CMP_EQ;
 cleanup:
-    // eHNFFS_free(temp_cache);
     return err;
 }
 
@@ -587,9 +575,6 @@ int eHNFFS_read_to_cache(eHNFFS_t *eHNFFS, eHNFFS_size_t mode, eHNFFS_cache_ram_
                          eHNFFS_size_t sector, eHNFFS_off_t off, eHNFFS_size_t size)
 {
     int err = eHNFFS_ERR_OK;
-
-    // Debug
-    // printf("It's (%d, %d, %d)\n", sector, off, size);
 
     eHNFFS_ASSERT(off + size <= eHNFFS->cfg->sector_size);
     if (cache->sector == sector && cache->off == off &&
@@ -950,18 +935,7 @@ int eHNFFS_sector_old(eHNFFS_t *eHNFFS, eHNFFS_size_t begin, eHNFFS_size_t num)
         {
             return err;
         }
-
-        // TODO, whether or not it's useful.
-        err = eHNFFS_cache_cmp(eHNFFS, sector, 0, &head, sizeof(eHNFFS_head_t));
-        if (err < 0)
-        {
-            return err;
-        }
-
-        if (err != eHNFFS_CMP_EQ)
-        {
-            return eHNFFS_ERR_WRONGPROG;
-        }
+        sector++;
     }
 
     // Turn bits in erase map to 0, so it can reuse in the future.

@@ -185,7 +185,10 @@ int eHNFFS_dir_gc(eHNFFS_t *eHNFFS, eHNFFS_dir_ram_t *dir, eHNFFS_size_t region,
             p = p->next;
         }
     }
+
     snum -= dir->old_space / eHNFFS->cfg->sector_size;
+    if (snum <= 0)
+        snum = 1;
     eHNFFS_ASSERT(snum <= eHNFFS->manager->region_size);
 
     // Find a region that can store all sectors.

@@ -320,6 +320,11 @@ int eHNFFS_fsync_wrp(int fd)
     return err;
 }
 
+int eHNFFS_sync_wrp()
+{
+    return 0;
+}
+
 struct nfvfs_operations eHNFFS_ops = {
     .mount = eHNFFS_mount_wrp,
     .unmount = eHNFFS_unmount_wrp,
@@ -332,4 +337,5 @@ struct nfvfs_operations eHNFFS_ops = {
     .readdir = eHNFFS_readdir_wrp,
     .remove = eHNFFS_delete_wrp,
     .fsync = eHNFFS_fsync_wrp,
+    .sync = eHNFFS_sync_wrp,
 };

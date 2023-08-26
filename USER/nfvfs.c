@@ -239,3 +239,13 @@ int nfvfs_fsync(struct nfvfs *nfvfs, int fd)
 {
     return nfvfs->super.op.fsync(fd);
 }
+
+int nfvfs_gc(struct nfvfs *nfvfs)
+{
+    return nfvfs->super.op.gc();
+}
+
+int nfvfs_sync(struct nfvfs *nfvfs)
+{
+    return nfvfs->super.op.sync();
+}

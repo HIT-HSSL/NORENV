@@ -10,6 +10,8 @@
 #include "eHNFFS_manage.h"
 #include "eHNFFS_dir.h"
 
+int eHNFFS_cnt = 0;
+
 /**
  * Initialize file list structure.
  */
@@ -143,8 +145,8 @@ int eHNFFS_ftraverse_gc(eHNFFS_t *eHNFFS, eHNFFS_file_ram_t *file, eHNFFS_size_t
 {
     int err = eHNFFS_ERR_OK;
 
-		eHNFFS_size_t len;
-	
+    eHNFFS_size_t len;
+
     // Find new sequential space to do gc.
     eHNFFS_size_t new_begin, new_sector;
     eHNFFS_off_t new_off = sizeof(eHNFFS_bfile_sector_flash_t);
@@ -215,11 +217,15 @@ int eHNFFS_ftraverse_gc(eHNFFS_t *eHNFFS, eHNFFS_file_ram_t *file, eHNFFS_size_t
     }
 
     // Turn old in-flash index to deleted.
-    err = eHNFFS_data_delete(eHNFFS, file->father_id, file->file_cache.sector,
-                             file->file_cache.off, file->file_cache.size);
-    if (err)
+    // Mode 0 means we don't have new data in cache, so data in flash isn't be deleted.
+    if (file->file_cache.mode == 0)
     {
-        goto cleanup;
+        err = eHNFFS_data_delete(eHNFFS, file->father_id, file->file_cache.sector,
+                                 file->file_cache.off, file->file_cache.size);
+        if (err)
+        {
+            goto cleanup;
+        }
     }
 
     // Prog new big file index.
@@ -285,8 +291,7 @@ int eHNFFS_bfile_part_gc(eHNFFS_t *eHNFFS, eHNFFS_file_ram_t *file, eHNFFS_size_
     int err = eHNFFS_ERR_OK;
 
     // Find new sequential space to do gc.
-    eHNFFS_size_t new_begin,
-        new_sector;
+    eHNFFS_size_t new_begin, new_sector;
     err = eHNFFS_sector_alloc(eHNFFS, eHNFFS->manager, eHNFFS_SECTOR_BFILE, sector_num,
                               eHNFFS_NULL, file->id, file->father_id, &new_sector, NULL);
     if (err)
@@ -343,12 +348,15 @@ int eHNFFS_bfile_part_gc(eHNFFS_t *eHNFFS, eHNFFS_file_ram_t *file, eHNFFS_size_
         return err;
     }
 
-    // Turn old in-flash index to deleted.
-    err = eHNFFS_data_delete(eHNFFS, file->father_id, file->file_cache.sector,
-                             file->file_cache.off, file->file_cache.size);
-    if (err)
+    if (file->file_cache.mode == 0)
     {
-        return err;
+        // Turn old in-flash index to deleted.
+        err = eHNFFS_data_delete(eHNFFS, file->father_id, file->file_cache.sector,
+                                 file->file_cache.off, file->file_cache.size);
+        if (err)
+        {
+            return err;
+        }
     }
 
     // Prog new big file index.
@@ -509,7 +517,7 @@ int eHNFFS_part_ftraverse_gc(eHNFFS_t *eHNFFS, eHNFFS_file_ram_t *file)
     int err = eHNFFS_ERR_OK;
 
     eHNFFS_bfile_index_flash_t *bfile_index = (eHNFFS_bfile_index_flash_t *)file->file_cache.buffer;
-    eHNFFS_size_t num = (eHNFFS_dhead_dsize(bfile_index->head) - sizeof(eHNFFS_size_t)) /
+    eHNFFS_size_t num = (file->file_cache.size - sizeof(eHNFFS_size_t)) /
                         sizeof(eHNFFS_bfile_index_ram_t);
 
     if (num < eHNFFS_FILE_INDEX_LEN)
@@ -574,98 +582,6 @@ int eHNFFS_part_ftraverse_gc(eHNFFS_t *eHNFFS, eHNFFS_file_ram_t *file)
         printf("...\n");
         return err;
     }
-
-    // Version 2
-    // eHNFFS_size_t gc_size = -1;
-    // eHNFFS_size_t min = 0;
-    // eHNFFS_size_t max = arr_len - 1;
-    // while (true)
-    // {
-    //     if (min == max)
-    //         // Now we don't have ability to do gc.
-    //         return err;
-
-    //     gc_size = 0;
-    //     for (int i = candidate_arr[min]; i <= candidate_arr[max]; i++)
-    //         gc_size += bfile_index->index[i].size;
-
-    //     if (gc_size >= eHNFFS->cfg->sector_size * eHNFFS->manager->region_size)
-    //     {
-    //         if ((candidate_arr[min + 1] - candidate_arr[min]) >=
-    //             (candidate_arr[max] - candidate_arr[max - 1]))
-    //             max--;
-    //         else
-    //             min++;
-    //     }
-    //     else
-    //         break;
-    // }
-
-    // eHNFFS_size_t len = eHNFFS->cfg->sector_size - sizeof(eHNFFS_bfile_sector_flash_t);
-    // eHNFFS_size_t gc_num = eHNFFS_alignup(gc_size, len) / len;
-
-    // printf("min and max, %d, %d, %d, %d, %d\n", candidate_arr[min], candidate_arr[max], gc_size, num, gc_num);
-
-    // err = eHNFFS_bfile_part_gc(eHNFFS, file, candidate_arr[min], candidate_arr[max], gc_size, num, gc_num);
-    // if (err)
-    // {
-    //     return err;
-    // }
-
-    // Version 1
-    // eHNFFS_size_t min = eHNFFS_NULL;
-    // eHNFFS_size_t max = 0;
-    // eHNFFS_size_t threshold = eHNFFS->cfg->sector_size;
-
-    // for (int i = candidate_arr[0]; i <= candidate_arr[arr_len];)
-
-    // // Find a set of index to merge and gc.
-    // while (max - min < 5)
-    // {
-    //     for (int i = 0; i < num; i++)
-    //     {
-    //         if (bfile_index->index[i].size <= threshold)
-    //         {
-    //             min = eHNFFS_min(min, i);
-    //             max = eHNFFS_max(max, i);
-    //         }
-    //     }
-
-    //     threshold += 2 * eHNFFS->cfg->sector_size;
-    // }
-
-    // eHNFFS_size_t gc_size = 0;
-    // for (int i = min; i <= max; i++)
-    // {
-    //     gc_size += bfile_index->index[i].size;
-    // }
-    // eHNFFS_size_t len = eHNFFS->cfg->sector_size - sizeof(eHNFFS_bfile_sector_flash_t);
-    // eHNFFS_size_t gc_num = eHNFFS_alignup(gc_size, len) / len;
-
-    // if (gc_num < eHNFFS->manager->region_size / 2)
-    // {
-
-    //     // Debug
-    //     printf("min and max, %d, %d, %d, %d, %d\n", min, max, gc_size, num, gc_num);
-
-    //     err = eHNFFS_bfile_part_gc(eHNFFS, file, min, max, gc_size, num, gc_num);
-    //     if (err)
-    //     {
-    //         return err;
-    //     }
-    // }
-    // else if (gc_num <= eHNFFS->manager->region_size)
-    // {
-
-    //     // Debug
-    //     printf("。。。min and max, %d, %d, %d, %d, %d\n", min, max, gc_size, num, gc_num);
-
-    //     err = eHNFFS_bfile_region_gc(eHNFFS, eHNFFS->manager, file, min, max, gc_size, num, gc_num);
-    //     if (err)
-    //     {
-    //         return err;
-    //     }
-    // }
 
     // If we can't merge index into one region, then not do gc now.
     return err;
@@ -1112,11 +1028,14 @@ int eHNFFS_s2b_file_write(eHNFFS_t *eHNFFS, eHNFFS_file_ram_t *file,
 
     // Prog the part of data in file cache.
     eHNFFS_size_t begin = sector;
-    err = eHNFFS_bfile_prog(eHNFFS, &sector, &off, file->file_cache.buffer + sizeof(eHNFFS_head_t),
-                            file->pos);
-    if (err)
+    if (file->pos > 0)
     {
-        return err;
+        err = eHNFFS_bfile_prog(eHNFFS, &sector, &off, file->file_cache.buffer + sizeof(eHNFFS_head_t),
+                                file->pos);
+        if (err)
+        {
+            return err;
+        }
     }
 
     // Prog the part of data in buffer.
@@ -1132,10 +1051,8 @@ int eHNFFS_s2b_file_write(eHNFFS_t *eHNFFS, eHNFFS_file_ram_t *file,
 
     // Delete old data.
     eHNFFS_size_t head = *(eHNFFS_head_t *)file->file_cache.buffer;
-
     if (head != eHNFFS_NULL)
     {
-
         err = eHNFFS_data_delete(eHNFFS, file->father_id, file->file_cache.sector,
                                  file->file_cache.off, eHNFFS_dhead_dsize(head));
         if (err)
@@ -1145,6 +1062,7 @@ int eHNFFS_s2b_file_write(eHNFFS_t *eHNFFS, eHNFFS_file_ram_t *file,
     }
 
     // Create new big file index data.
+    memset(file->file_cache.buffer, 0, eHNFFS_FILE_CACHE_SIZE);
     eHNFFS_bfile_index_flash_t *bfile_index = (eHNFFS_bfile_index_flash_t *)file->file_cache.buffer;
     eHNFFS_size_t index_len = sizeof(eHNFFS_bfile_index_flash_t) + sizeof(eHNFFS_bfile_index_ram_t);
     bfile_index->head = eHNFFS_MKDHEAD(0, 1, file->id, eHNFFS_DATA_BFILE_INDEX, index_len);
@@ -1235,25 +1153,15 @@ int eHNFFS_big_file_write(eHNFFS_t *eHNFFS, eHNFFS_file_ram_t *file,
         err = eHNFFS_bfile_gc(eHNFFS, file);
         if (err)
         {
+            printf("wuwuwu~~~\n");
             return err;
         }
-
         index_num = (file->file_cache.size - sizeof(eHNFFS_head_t)) /
                     sizeof(eHNFFS_bfile_index_ram_t);
-
-        // // Debug
-        // printf("-----------------------\n");
-        // printf("After gc\n");
-        // int my_cnt = 0;
-        // for (int i = 0; i < index_num; i++)
-        // {
-        //     printf("%d, %d, %d, %d\n", bfile_index[i].sector, bfile_index[i].off,
-        //            bfile_index[i].size, bfile_index[i].size / 4084);
-        //     my_cnt += bfile_index[i].size;
-        // }
-        // printf("total size is %d, index num is %d\n", my_cnt, index_num);
-        // printf("-----------------------\n");
     }
+
+    eHNFFS_ASSERT(file->file_cache.size + 2 * sizeof(eHNFFS_bfile_index_ram_t) <=
+                  eHNFFS_FILE_CACHE_SIZE);
 
     // If it's appended write, We may use free space behind the last index.
     // Jump function is used to calculate free spcae in the last index.
@@ -1401,9 +1309,8 @@ int eHNFFS_big_file_write(eHNFFS_t *eHNFFS, eHNFFS_file_ram_t *file,
     // If new data we prog can cover all behind part of file's data, then it's easy to do.
     if (file->pos + size >= file->file_size)
     {
-
         // Set all deleted sectors to old.
-        err = eHNFFS_bfile_sector_old(eHNFFS, &bfile_index[i], index_num - i - 1);
+        err = eHNFFS_bfile_sector_old(eHNFFS, &bfile_index[i], index_num - i);
         if (err)
         {
             return err;
@@ -1444,8 +1351,6 @@ int eHNFFS_big_file_write(eHNFFS_t *eHNFFS, eHNFFS_file_ram_t *file,
 
         // If the first sector of end index still has valid data,
         // we shouldn't erase it.
-        // Debug
-        // if (end_index.sector == bfile_index->sector)
         if (end_index.sector == bfile_index[j].sector)
             bfile_index[j].sector = eHNFFS_NULL;
         else
@@ -1457,7 +1362,7 @@ int eHNFFS_big_file_write(eHNFFS_t *eHNFFS, eHNFFS_file_ram_t *file,
 
             // If end index's first sector isn't, we shouldn't delete it.
             // i.e index[j] should decrease this size.
-            bfile_index[j].size -= (end_index.off - sizeof(eHNFFS_bfile_index_flash_t));
+            bfile_index[j].size -= (end_index.off - sizeof(eHNFFS_bfile_sector_flash_t));
         }
     }
 
@@ -1533,6 +1438,10 @@ int eHNFFS_big_file_write(eHNFFS_t *eHNFFS, eHNFFS_file_ram_t *file,
     file->file_cache.mode = 1;
     file->pos = file->pos + size;
     file->file_size = eHNFFS_max(file->pos, file->file_size);
+
+    // Debug
+    eHNFFS_cnt += 1;
+    // printf("Index num: %d, %d\r\n", eHNFFS_cnt, index_num + new_index_num - num);
 
     return origin_size;
 }

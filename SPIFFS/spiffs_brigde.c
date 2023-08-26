@@ -3,8 +3,12 @@
 #include "spiffs.h"
 #include "w25qxx.h"
 #include "delay.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "spiffs_nucleus.h"
 
 #define LOG_PAGE_SIZE 256
+// #define LOG_PAGE_SIZE 1024
 #define W25Q256_SECTOR_SIZE 4096
 #define W25Q256_SIZE (W25Q256_SECTOR_SIZE * W25Q256_NUM_GRAN)
 
@@ -12,7 +16,8 @@ spiffs spifs_fs;
 
 static uint8_t spiffs_work_buf[LOG_PAGE_SIZE * 2];
 static uint8_t spiffs_fds[32 * 4];
-static uint8_t spiffs_cache_buf[(LOG_PAGE_SIZE + 32) * 2];
+// TODO, change to (LOG_PAGE_SIZE + 32) * 10
+static uint8_t spiffs_cache_buf[(LOG_PAGE_SIZE + 32) * 10];
 
 int W25Qxx_readspiffs(u32_t addr, u32_t size, u8_t *dst)
 {
@@ -46,7 +51,7 @@ int W25Qxx_erasespiffs(u32_t addr, u32_t size)
         return SPIFFS_ERR_IO;
     }
 
-    W25QXX_Erase_Sector(addr);
+    W25QXX_Erase_Sector(addr / 4096);
     return SPIFFS_OK;
 }
 
@@ -319,6 +324,32 @@ int spiffs_fsync_wrp(int fd)
     return err;
 }
 
+int spiffs_gc_wrp()
+{
+    int err = 0;
+
+    u32_t size = (SPIFFS_PAGES_PER_BLOCK(&spifs_fs) - SPIFFS_OBJ_LOOKUP_PAGES(&spifs_fs)) *
+                     (spifs_fs.block_count - 2) -
+                 spifs_fs.stats_p_allocated;
+    size = size * SPIFFS_DATA_PAGE_SIZE(&spifs_fs);
+
+    // Debug
+    // printf("page size is %d\r\n", SPIFFS_DATA_PAGE_SIZE(&spifs_fs));
+
+    err = SPIFFS_gc(&spifs_fs, size);
+    if (err < 0)
+    {
+        printf("file gc error is %d\r\n", err);
+    }
+    return err;
+}
+
+int spiffs_sync_wrp()
+{
+    spiffs_cache_init(&spifs_fs);
+    return 0;
+}
+
 struct nfvfs_operations spiffs_ops = {
     .mount = spiffs_mount_wrp,
     .unmount = spiffs_unmount_wrp,
@@ -331,4 +362,6 @@ struct nfvfs_operations spiffs_ops = {
     .readdir = spiffs_readdir_wrp,
     .remove = spiffs_delete_wrp,
     .fsync = spiffs_fsync_wrp,
+    .gc = spiffs_gc_wrp,
+    .sync = spiffs_sync_wrp,
 };

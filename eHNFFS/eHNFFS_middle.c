@@ -410,8 +410,8 @@ int eHNFFS_rawmount(eHNFFS_t *eHNFFS, const struct eHNFFS_config *cfg)
 {
     int err = eHNFFS_ERR_OK;
     int err2 = eHNFFS_ERR_OK;
-	
-		uint8_t *data;
+
+    uint8_t *data;
 
     // Initialize function, mainly allocate space for rcache and pcache.
     err = eHNFFS_init(eHNFFS, cfg);
@@ -1416,8 +1416,10 @@ int eHNFFS_dir_rawread(eHNFFS_t *eHNFFS, eHNFFS_dir_ram_t *dir, eHNFFS_info_ram_
     eHNFFS_size_t len = sizeof(eHNFFS_head_t);
     while (true)
     {
+        // TODO, has changed
         if (!(eHNFFS->rcache->sector == dir->pos_sector &&
               eHNFFS->rcache->off + eHNFFS->rcache->size >= dir->pos_off + len &&
+              eHNFFS->rcache->off <= dir->pos_off &&
               eHNFFS->rcache->mode == eHNFFS_FORWARD))
         {
             // If what we need is not in read cache, we should re-read.

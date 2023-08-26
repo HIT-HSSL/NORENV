@@ -32,16 +32,19 @@ void raw_sctor_test(int loop, uint32_t size);
  * -----------------------------------------------------------------------------------------------------------------------------------------------
  */
 
+// 0
 void file_prog_test(const char *fsname, int loop);
 
-void basic_storage_test(const char *fsname, int loop);
+// void basic_storage_test(const char *fsname, int loop);
 
-void fatfs_test(void);
+// void fatfs_test(void);
 
+// 1
 void busybox_test(const char *fsname);
 
-void operation_test(const char *fsname);
+// void operation_test(const char *fsname);
 
+// 2
 void new_operation_test(const char *fsname);
 
 void layer_test(struct nfvfs *dst_fs, char *path);
@@ -56,8 +59,15 @@ void remove_test(struct nfvfs *dst_fs, char *path, int len);
 
 void mount_test(const char *fsname);
 
+// 3
 void random_write_test(const char *fsname);
 
+// 4
 void random_read_test(const char *fsname);
+
+// 5
+void gc_test(const char *fsname);
+
+void corrupt_test(void);
 
 #endif /* __BENCHMARK_H */

@@ -13,10 +13,10 @@
 #include "w25qxx.h"
 #include "nand.h"
 #include "ftl.h"
-#include "lfs_brigde.h"
+// #include "lfs_brigde.h"
 #include "spiffs_brigde.h"
-#include "jesfs_brigde.h"
-#include "eHNFFS_brigde.h"
+// #include "jesfs_brigde.h"
+// #include "eHNFFS_brigde.h"
 #include "ff.h"
 #include "exfuns.h"
 
@@ -79,40 +79,42 @@ extern const struct eHNFFS_config eHNFFS_cfg;
 void fs_task(void *p_arg)
 {
 	printf("erase begin\r\n");
-	uint32_t start = (uint32_t)xTaskGetTickCount();
 	W25QXX_Erase_Chip();
-	uint32_t end = (uint32_t)xTaskGetTickCount();
 	printf("erase end\r\n");
-	// printf("Erase chip time is %u\r\n", end - start);
 
-	// int heap_size1 = xPortGetFreeHeapSize();
-	// printf("\r\n\r\n\r\n");
+	int heap_size1 = xPortGetFreeHeapSize();
+	printf("\r\n\r\n\r\n");
 
-	file_prog_test("eHNFFS", 2000);
+	// printf("begin\r\n");
+	// uint32_t start = (uint32_t)xTaskGetTickCount();
+	// gc_test("spiffs");
+	// corrupt_test();
+	// busybox_test("spiffs");
+	// uint32_t end = (uint32_t)xTaskGetTickCount();
+	// printf("Total corrupt test time is %u\r\n", end - start);
 
-	// random_write_test("spiffs");
+	new_operation_test("spiffs");
+	// file_prog_test("spiffs", 2000);
 	// random_read_test("spiffs");
+	// random_write_test("spiffs");
 
-	// start = (uint32_t)xTaskGetTickCount();
-	// int size = 1;
-	// for (int i = 0; i < 13; i++)
-	// {
-	// 	raw_sctor_test(1000, size);
-	// 	size = size * 2;
-	// }
-	// end = (uint32_t)xTaskGetTickCount();
-	// printf("Total sector test time is %u\r\n", end - start);
-
-	// busybox_test("eHNFFS");
-	// new_operation_test("littlefs");
-
-	// int heap_size2 = xPortGetMinimumEverFreeHeapSize();
-	// int stack_size = (int32_t)uxTaskGetStackHighWaterMark(NULL) * 4;
-	// printf("\r\n\r\n\r\n");
-	// printf("heap and stack usage information is: %d, %d, %d\r\n", heap_size1, heap_size2, stack_size);
+	int heap_size2 = xPortGetMinimumEverFreeHeapSize();
+	int stack_size = (int32_t)uxTaskGetStackHighWaterMark(NULL) * 4;
+	printf("\r\n\r\n\r\n");
+	printf("heap and stack usage information is: %d, %d, %d\r\n", heap_size1, heap_size2, stack_size);
 
 	vTaskDelete(FsTask_Handler);
 }
+
+// start = (uint32_t)xTaskGetTickCount();
+// int size = 1;
+// for (int i = 0; i < 13; i++)
+// {
+// 	raw_sctor_test(1000, size);
+// 	size = size * 2;
+// }
+// end = (uint32_t)xTaskGetTickCount();
+// printf("Total sector test time is %u\r\n", end - start);
 
 void board_init(void)
 {
@@ -138,9 +140,9 @@ void board_init(void)
 
 void fs_registration(void)
 {
-	register_nfvfs("littlefs", &lfs_ops, NULL);
+	// register_nfvfs("littlefs", &lfs_ops, NULL);
 	register_nfvfs("spiffs", &spiffs_ops, NULL);
-	register_nfvfs("eHNFFS", &eHNFFS_ops, NULL);
+	// register_nfvfs("eHNFFS", &eHNFFS_ops, NULL);
 	// register_nfvfs("jesfs", &jesfs_ops, NULL);
 }
 

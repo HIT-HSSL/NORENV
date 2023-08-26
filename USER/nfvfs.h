@@ -127,6 +127,7 @@ struct nfvfs_operations
     int (*syncfs)(int fd);
     int (*ioctl)(int fd, int request, void *argp);
     int (*mmap)(void *addr, int len, int prot, int flags, int fd, int offset);
+    int (*gc)();
 };
 
 struct nfvfs
@@ -161,5 +162,7 @@ int nfvfs_list(struct nfvfs *nfvfs, int fd, int (*action)(const char *name, void
 struct nfvfs_fentry *ftable_get_entry(int fd);
 int nfvfs_remove(struct nfvfs *nfvfs, int fd, char *path, int mode, int type);
 int nfvfs_fsync(struct nfvfs *nfvfs, int fd);
+int nfvfs_gc(struct nfvfs *nfvfs);
+int nfvfs_sync(struct nfvfs *nfvfs);
 
 #endif /* __NFVFS_H */

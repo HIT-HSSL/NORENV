@@ -76,13 +76,12 @@ const struct lfs_config lfs_cfg = {
     .sync = W25Qxx_synclfs,
 
     // block device configuration
-    //.read_size = 256,
-    //.prog_size = 256,
     .read_size = 1,
     .prog_size = 1,
     .block_size = W25Q256_ERASE_GRAN,
     .block_count = W25Q256_NUM_GRAN,
-    .cache_size = 512,
+    // .cache_size = 512,
+    .cache_size = 1024,
     .lookahead_size = 512,
     .block_cycles = 500,
 };
@@ -316,6 +315,11 @@ int lfs_fsync_wrp(int fd)
     return err;
 }
 
+int lfs_sync_wrp()
+{
+    return 0;
+}
+
 struct nfvfs_operations lfs_ops = {
     .mount = lfs_mount_wrp,
     .unmount = lfs_unmount_wrp,
@@ -328,4 +332,5 @@ struct nfvfs_operations lfs_ops = {
     .readdir = lfs_readdir_wrp,
     .remove = lfs_delete_wrp,
     .fsync = lfs_fsync_wrp,
+    .sync = lfs_sync_wrp,
 };

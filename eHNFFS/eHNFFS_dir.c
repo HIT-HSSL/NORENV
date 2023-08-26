@@ -319,11 +319,6 @@ int eHNFFS_dtraverse_name(eHNFFS_t *eHNFFS, eHNFFS_size_t tail, char *name, eHNF
             off += len;
             data += len;
 
-            if (off - eHNFFS->rcache->off >= eHNFFS->cfg->cache_size)
-            {
-                break;
-            }
-
             if (if_change && next != eHNFFS_NULL)
             {
                 // Traverse the next sector.
@@ -336,6 +331,11 @@ int eHNFFS_dtraverse_name(eHNFFS_t *eHNFFS, eHNFFS_size_t tail, char *name, eHNF
             {
                 *if_find = false;
                 return err;
+            }
+
+            if (off - eHNFFS->rcache->off >= eHNFFS->cfg->cache_size)
+            {
+                break;
             }
         }
     }
@@ -410,11 +410,6 @@ int eHNFFS_dtraverse_data(eHNFFS_t *eHNFFS, eHNFFS_dir_ram_t *dir, eHNFFS_size_t
             off += len;
             data += len;
 
-            if (off - eHNFFS->rcache->off >= eHNFFS->cfg->cache_size)
-            {
-                break;
-            }
-
             if (off >= eHNFFS->cfg->sector_size)
             {
                 eHNFFS_dir_sector_flash_t shead;
@@ -440,6 +435,11 @@ int eHNFFS_dtraverse_data(eHNFFS_t *eHNFFS, eHNFFS_dir_ram_t *dir, eHNFFS_size_t
                     off = list->off;
                     list = list->next;
                 }
+                break;
+            }
+
+            if (off - eHNFFS->rcache->off >= eHNFFS->cfg->cache_size)
+            {
                 break;
             }
         }
@@ -540,11 +540,6 @@ int eHNFFS_dtraverse_bfile_delete(eHNFFS_t *eHNFFS, eHNFFS_dir_ram_t *dir)
             off += len;
             data += len;
 
-            if (off - eHNFFS->rcache->off >= eHNFFS->cfg->cache_size)
-            {
-                break;
-            }
-
             // Traverse the next sector if dir has.
             if (off >= eHNFFS->cfg->sector_size &&
                 next != eHNFFS_NULL)
@@ -552,6 +547,11 @@ int eHNFFS_dtraverse_bfile_delete(eHNFFS_t *eHNFFS, eHNFFS_dir_ram_t *dir)
                 sector = next;
                 off = list->off;
                 list = list->next;
+                break;
+            }
+
+            if (off - eHNFFS->rcache->off >= eHNFFS->cfg->cache_size)
+            {
                 break;
             }
         }
@@ -682,7 +682,9 @@ int eHNFFS_dtraverse_ospace(eHNFFS_t *eHNFFS, eHNFFS_dir_ram_t *dir, eHNFFS_size
                     sector == dir->tail)
                     off = dir->backward;
                 else
+                {
                     return eHNFFS_ERR_WRONGCAL;
+                }
 
             default:
                 err = eHNFFS_ERR_WRONGCAL;
@@ -692,24 +694,25 @@ int eHNFFS_dtraverse_ospace(eHNFFS_t *eHNFFS, eHNFFS_dir_ram_t *dir, eHNFFS_size
             off += len;
             data += len;
 
-            if (off - eHNFFS->rcache->off >= eHNFFS->cfg->cache_size)
-            {
-                break;
-            }
             if (off >= eHNFFS->cfg->sector_size)
             {
+                if (next == eHNFFS_NULL)
+                {
+                    // Return the space that could reuse by gc.
+                    dir->old_space = ospace;
+                    return err;
+                }
+
                 // Traverse the next sector.
                 sector = next;
                 off = 0;
                 break;
             }
-        }
 
-        if (next == eHNFFS_NULL)
-        {
-            // Return the space that could reuse by gc.
-            dir->old_space = ospace;
-            return err;
+            if (off - eHNFFS->rcache->off >= eHNFFS->cfg->cache_size)
+            {
+                break;
+            }
         }
     }
 }
@@ -1156,7 +1159,7 @@ int eHNFFS_dir_lowopen(eHNFFS_t *eHNFFS, eHNFFS_size_t tail, eHNFFS_size_t id,
     dir = eHNFFS_malloc(sizeof(eHNFFS_dir_ram_t));
     if (!dir)
     {
-        return eHNFFS_ERR_NOSPC;
+        return eHNFFS_ERR_NOMEM;
     }
 
     // Initialize basic data for the dir.

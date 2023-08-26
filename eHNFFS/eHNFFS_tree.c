@@ -25,7 +25,7 @@ int eHNFFS_hash_queue_init(eHNFFS_hash_queue_ram_t **queue_addr)
     eHNFFS_hash_queue_ram_t *queue = eHNFFS_malloc(sizeof(eHNFFS_hash_queue_ram_t));
     if (!queue)
     {
-        err = eHNFFS_ERR_NOSPC;
+        err = eHNFFS_ERR_NOMEM;
         goto cleanup;
     }
     queue->num = 0;
@@ -34,7 +34,7 @@ int eHNFFS_hash_queue_init(eHNFFS_hash_queue_ram_t **queue_addr)
     queue->array = eHNFFS_malloc(20 * sizeof(eHNFFS_tree_entry_ram_t *));
     if (!queue->array)
     {
-        err = eHNFFS_ERR_NOSPC;
+        err = eHNFFS_ERR_NOMEM;
         goto cleanup;
     }
     *queue_addr = queue;
